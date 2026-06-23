@@ -16,8 +16,8 @@ const nvidia = createOpenAI({
 
 export const CHAT_MODEL_ID = "nvidia/nemotron-3-ultra-550b-a55b";
 
-/** NVIDIA nv-embedcode-7b-v1 — note: may output different dimensions than the 1536 expected by the vector index. */
-export const EMBEDDING_MODEL_ID = "nvidia/nv-embedcode-7b-v1";
+/** NVIDIA embedding model — use one that outputs 1536 dims to match the vector index. */
+export const EMBEDDING_MODEL_ID = "nvidia/nv-embed-v1";
 
 export const chatModel = nvidia.chat(CHAT_MODEL_ID);
 

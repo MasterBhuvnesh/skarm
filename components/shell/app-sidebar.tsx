@@ -100,7 +100,7 @@ export function AppSidebar() {
           <Search className="size-3.5" />
           Search…
           <kbd className="ml-auto rounded border bg-muted px-1 font-mono text-[10px]">
-            ⌘K
+            ⌘ K
           </kbd>
         </button>
       </div>

@@ -18,7 +18,7 @@ export function Cta() {
           Stop managing your tracker. Start shipping.
         </h2>
         <p className="mt-5 max-w-md text-base text-balance text-muted-foreground">
-          Set up your workspace in under a minute. Free for teams of three —
+          Set up your workspace in under a minute. Free for teams of three -
           upgrade when the roadmap outgrows you.
         </p>
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
