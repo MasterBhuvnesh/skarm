@@ -27,7 +27,7 @@ Clerk is the source of truth for identity/membership/subscriptions, mirrored int
 
 - Svix-verified webhook endpoint: Convex HTTP action `/clerk-webhook` → `convex/webhooks.ts` internal mutation.
 - Synced tables: `users`, `organizations` (with `plan`), `members`.
-- Subscription events (`subscription.*`, `subscriptionItem.*` — Clerk event names) update `organizations.plan` (`free` | `pro` | `enterprise`).
+- Subscription events (`subscription.*`, `subscriptionItem.*` - Clerk event names) update `organizations.plan` (`free` | `pro` | `enterprise`).
 - JWT template `convex` carries `org_id`/`org_slug`/`org_role` claims; Convex functions resolve + verify membership against synced tables via custom wrappers (`orgQuery`/`orgMutation`/`orgAdminMutation`).
 
 ## Billing

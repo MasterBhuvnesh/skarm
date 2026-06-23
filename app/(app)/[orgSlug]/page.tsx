@@ -34,7 +34,7 @@ export default function WorkspaceHomePage() {
     try {
       const result = await seedDemoData({});
       toast.success(
-        `Demo workspace ready — ${result.teams} teams, ${result.issues} issues, ${result.projects} projects.`
+        `Demo workspace ready - ${result.teams} teams, ${result.issues} issues, ${result.projects} projects.`
       );
       // Keep the spinner on; the reactive teams query redirects to the first team.
     } catch (error) {

@@ -21,7 +21,7 @@ export function FeaturesBoard() {
             <FeatureBullet
               icon={LayoutGrid}
               title="A board that keeps up"
-              description="Fractional ordering means drops land exactly where you put them — even mid-drag from a teammate."
+              description="Fractional ordering means drops land exactly where you put them even mid-drag from a teammate."
             />
             <FeatureBullet
               icon={RefreshCcw}
@@ -31,7 +31,7 @@ export function FeaturesBoard() {
             <FeatureBullet
               icon={TrendingUp}
               title="Progress, computed"
-              description="Scope, started, and completed counts are derived from the issues — never hand-updated."
+              description="Scope, started, and completed counts are derived from the issues never hand-updated."
             />
             <FeatureBullet
               icon={Target}

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Show } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import Image from "next/image";
 
 /**
  * Marketing layout — Track F owns the landing page content, Track E owns

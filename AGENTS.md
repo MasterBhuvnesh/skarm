@@ -56,7 +56,7 @@ Comments (+@mentions using `organizations.listMembers`), activity feed rendering
 
 Convex Agent component (`@convex-dev/agent`) with OpenAI (`@ai-sdk/openai`), org-scoped tools (create/update/search issues, cycle summary, project status, list members — reuse internal logic, enforce org scoping in EVERY tool), chat UI at `/ai`, triage assist (embeddings on issue create via scheduled internal action filling `issues.embedding`, vector index `by_embedding`, dimensions 1536), duplicate detection, standup/cycle reports, rate limiting (`@convex-dev/rate-limiter`: 50 msgs/user/day on Pro, unlimited Enterprise), gate everything with `hasAiAccess(ctx.org)` and `has({ feature: "ai_agent" })` in UI.
 **Owns:** `convex/agent/` (use `"use node"` only in action files needing it), `components/ai/`, `app/(app)/[orgSlug]/ai/`.
-**Env:** `OPENAI_API_KEY` must be set on the Convex deployment (`npx convex env set OPENAI_API_KEY ...` from main checkout — ask the human if missing).
+**Env:** `NVIDIA_API_KEY` must be set on the Convex deployment (`npx convex env set NVIDIA_API_KEY ...` from main checkout — ask the human if missing).
 
 ### Track E — Billing & Gating (`track/billing`)
 

@@ -8,11 +8,19 @@ import { embeddingModel, isAiConfigured } from "./models";
 
 const BACKFILL_BATCH_SIZE = 16;
 
-/** Embed one text snippet (1536 dims — `by_embedding` index). */
+/** Embed one text snippet with NVIDIA-specific parameters. */
 export async function embedText(text: string): Promise<number[]> {
   const { embedding } = await embed({
     model: embeddingModel,
     value: text.slice(0, 8000),
+    providerOptions: {
+      openai: {
+        extraBody: {
+          input_type: "query",
+          truncate: "NONE",
+        },
+      },
+    },
   });
   return embedding;
 }
@@ -27,8 +35,8 @@ export const embedIssue = internalAction({
   handler: async (ctx, args): Promise<null> => {
     if (!isAiConfigured()) {
       // Graceful no-op: the backfill loop will pick this issue up once the
-      // deployment has an OPENAI_API_KEY.
-      console.warn("Skipping issue embedding: OPENAI_API_KEY is not set");
+      // deployment has an NVIDIA_API_KEY.
+      console.warn("Skipping issue embedding: NVIDIA_API_KEY is not set");
       return null;
     }
     const source = await ctx.runQuery(
@@ -57,7 +65,7 @@ export const backfillOrgEmbeddings = internalAction({
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     if (!isAiConfigured()) {
-      console.warn("Skipping embedding backfill: OPENAI_API_KEY is not set");
+      console.warn("Skipping embedding backfill: NVIDIA_API_KEY is not set");
       return null;
     }
     const batch = await ctx.runQuery(
@@ -70,6 +78,14 @@ export const backfillOrgEmbeddings = internalAction({
     const { embeddings } = await embedMany({
       model: embeddingModel,
       values: batch.map((item) => item.text.slice(0, 8000)),
+      providerOptions: {
+        openai: {
+          extraBody: {
+            input_type: "query",
+            truncate: "NONE",
+          },
+        },
+      },
     });
     await ctx.runMutation(internal.agent.data.saveIssueEmbeddings, {
       orgId: args.orgId,

@@ -20,7 +20,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
     icon: ListFilter,
     title: "Saved views",
     description:
-      "Slice the backlog by status, assignee, label, or cycle — then save the view for the team.",
+      "Slice the backlog by status, assignee, label, or cycle - then save the view for the team.",
   },
   {
     icon: Paperclip,
@@ -44,7 +44,7 @@ const FEATURES: { icon: LucideIcon; title: string; description: string }[] = [
     icon: Boxes,
     title: "Multi-team workspaces",
     description:
-      "Each team gets its own key, board, and cycles — ENG-142 means the same thing to everyone.",
+      "Each team gets its own key, board, and cycles - ENG-142 means the same thing to everyone.",
   },
 ];
 
@@ -54,7 +54,7 @@ export function FeatureGrid() {
       <SectionHeading
         eyebrow="05 · Everything else"
         title="All the table stakes, none of the bloat"
-        lede="The features you expect from a serious tracker — built in, fast, and out of your way."
+        lede="The features you expect from a serious tracker - built in, fast, and out of your way."
         align="center"
       />
       <div className="mt-14 grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-2 lg:grid-cols-3">

@@ -128,7 +128,7 @@ function AiWorkspace() {
           )}
           <AiComposer
             disabled={quotaExhausted}
-            disabledReason="Daily AI message limit reached — upgrade to Enterprise for unlimited messages"
+            disabledReason="Daily AI message limit reached - upgrade to Enterprise for unlimited messages"
             onSend={send}
           />
         </main>

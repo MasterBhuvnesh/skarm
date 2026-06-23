@@ -20,7 +20,7 @@ export default function PricingPage() {
         </h1>
         <p className="max-w-lg text-sm text-muted-foreground text-balance">
           Free for small teams. Pro for AI superpowers. Enterprise for
-          unlimited scale. Plans are billed per workspace — switch or cancel
+          unlimited scale. Plans are billed per workspace - switch or cancel
           any time.
         </p>
       </div>

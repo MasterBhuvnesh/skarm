@@ -11,7 +11,7 @@ export function FeaturesIssues() {
           <SectionHeading
             eyebrow="01 · Issues"
             title="Issues that move at the speed of thought"
-            lede="Create in seconds, triage with single keys, and never hit refresh — every change syncs to every teammate in real time."
+            lede="Create in seconds, triage with single keys, and never hit refresh every change syncs to every teammate in real time."
           />
           <div className="mt-10 grid gap-7 sm:grid-cols-2">
             <FeatureBullet
@@ -27,7 +27,7 @@ export function FeaturesIssues() {
             <FeatureBullet
               icon={AtSign}
               title="Comments & @mentions"
-              description="Discussion lives on the issue — mention a teammate and they're in the loop instantly."
+              description="Discussion lives on the issue mention a teammate and they're in the loop instantly."
             />
             <FeatureBullet
               icon={Activity}

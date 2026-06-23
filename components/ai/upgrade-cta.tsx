@@ -33,7 +33,7 @@ export function AiUpgradeCta() {
         <div className="flex flex-col gap-1.5">
           <h2 className="text-lg font-semibold">Meet Cohere, your AI agent</h2>
           <p className="text-sm text-muted-foreground">
-            Cohere works inside your workspace — triaging, reporting and
+            Cohere works inside your workspace - triaging, reporting and
             filing issues for you. Available on Pro and Enterprise plans.
           </p>
         </div>
