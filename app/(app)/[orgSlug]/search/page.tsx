@@ -96,7 +96,7 @@ export default function SearchPage() {
           </Select>
         </div>
 
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-2xl px-4 pb-8">
             {debouncedQuery.length === 0 ? (
               <div className="flex flex-col items-center gap-2 py-24 text-center">

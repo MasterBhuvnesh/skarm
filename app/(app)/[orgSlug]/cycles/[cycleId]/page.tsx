@@ -184,7 +184,7 @@ function CycleDetail({
         </div>
       </header>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-3 border-b px-4 py-5">
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-xl font-semibold">

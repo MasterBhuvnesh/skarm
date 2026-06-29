@@ -81,7 +81,7 @@ export default function TeamIssuesPage() {
           </Button>
         </div>
       </header>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         {issues.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-32 text-center">
             <p className="text-sm text-muted-foreground">

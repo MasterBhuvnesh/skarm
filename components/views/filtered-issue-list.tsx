@@ -37,7 +37,7 @@ export function FilteredIssueList({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea className="min-h-0 flex-1">
       {grouped.map(({ status, issues: groupIssues }) => (
         <section key={status.value}>
           <div className="flex h-9 items-center gap-2 bg-muted/50 px-4 text-sm">

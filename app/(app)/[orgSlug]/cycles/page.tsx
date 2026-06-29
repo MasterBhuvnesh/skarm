@@ -108,7 +108,7 @@ function CyclesPageInner() {
           )}
         </div>
       ) : (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           {teamsWithCycles?.map((team) => (
             <section key={team._id}>
               <div className="flex h-9 items-center gap-2 bg-muted/50 px-4 text-sm">

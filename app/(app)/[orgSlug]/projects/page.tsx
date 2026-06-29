@@ -79,7 +79,7 @@ function ProjectsPageInner() {
           </Button>
         </div>
       ) : (
-        <ScrollArea className="flex-1">
+        <ScrollArea className="min-h-0 flex-1">
           <div className="flex h-8 items-center gap-3 border-b bg-muted/50 px-4 text-xs text-muted-foreground">
             <span className="flex-1 pl-8">Name</span>
             <span className="hidden w-16 text-right sm:block">Issues</span>

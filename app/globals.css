@@ -131,3 +131,30 @@
     @apply font-sans;
   }
 }
+
+/* Thin scrollbars for native scrollers (board, AI chat, etc.).
+   webkit-only so the arrow buttons can be removed (scrollbar-width: thin would
+   make Chromium ignore these rules). height handles horizontal scrollers. */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--foreground) 10%, transparent);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* UI chrome isn't selectable; content (titles, comments, AI replies) stays selectable. */
+button, [role="button"], [role="menuitem"], [role="tab"], kbd, [data-slot="sidebar"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
