@@ -9,6 +9,7 @@ import {
   Plus,
   RefreshCcw,
   Search,
+  Settings,
   SquarePen,
 } from "lucide-react";
 import Link from "next/link";
@@ -170,7 +171,20 @@ export function AppSidebar() {
 
       <div className="flex items-center justify-between border-t p-3">
         <UserButton />
-        <ThemeToggle />
+        <div className="flex items-center gap-1">
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            className="size-7"
+            aria-label="Settings"
+          >
+            <Link href={`/${params.orgSlug}/settings`}>
+              <Settings className="size-4" />
+            </Link>
+          </Button>
+          <ThemeToggle />
+        </div>
       </div>
 
       <CreateTeamDialog open={createTeamOpen} onOpenChange={setCreateTeamOpen} />
