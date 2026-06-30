@@ -1,6 +1,6 @@
 "use client";
 
-import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
+import { OrganizationSwitcher, UserButton, useOrganization } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import {
   Bot,
@@ -73,6 +73,7 @@ function NavLink({
 
 export function AppSidebar() {
   const params = useParams<{ orgSlug: string }>();
+  const { organization } = useOrganization();
   const teams = useQuery(api.teams.list);
   const { openCreateIssue, openPalette } = useCommands();
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
@@ -105,21 +106,31 @@ export function AppSidebar() {
         )}
       >
         {!collapsed && (
-          <div className="min-w-0 flex-1">
-            <OrganizationSwitcher
-              hidePersonal
-              afterSelectOrganizationUrl="/:slug"
-              afterCreateOrganizationUrl="/:slug"
-              appearance={{
-                elements: {
-                  rootBox: "min-w-0 w-full",
-                  organizationSwitcherTrigger: "max-w-full",
-                },
-              }}
-            />
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="min-w-0 flex-1">
+                <OrganizationSwitcher
+                  hidePersonal
+                  afterSelectOrganizationUrl="/:slug"
+                  afterCreateOrganizationUrl="/:slug"
+                  appearance={{
+                    elements: {
+                      rootBox: "min-w-0 w-full",
+                      organizationSwitcherTrigger: "min-w-0 max-w-full",
+                      organizationPreview: "min-w-0",
+                      organizationPreviewTextContainer: "min-w-0",
+                      organizationPreviewMainIdentifier: "block max-w-[11ch] truncate mr-2",
+                    },
+                  }}
+                />
+              </div>
+            </TooltipTrigger>
+            {organization?.name ? (
+              <TooltipContent side="bottom">{organization.name}</TooltipContent>
+            ) : null}
+          </Tooltip>
         )}
-        <div className={cn("flex shrink-0 gap-1", collapsed && "flex-col")}>
+        <div className={cn("flex shrink-0 gap-1", collapsed && "flex-col ml-2" )}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

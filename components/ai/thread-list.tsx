@@ -2,7 +2,6 @@
 
 import { MessageSquare, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 export type ThreadSummary = {
@@ -37,7 +36,7 @@ export function ThreadList({
           New conversation
         </Button>
       </div>
-      <ScrollArea className="flex-1 px-2 pb-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         <div className="flex flex-col gap-0.5">
           {threads?.map((thread) => (
             <div
@@ -53,7 +52,7 @@ export function ThreadList({
                 className="flex min-w-0 flex-1 items-center gap-2 px-2 text-left"
               >
                 <MessageSquare className="size-3.5 shrink-0" />
-                <span className="truncate">{thread.title}</span>
+                <span className="min-w-0 flex-1 truncate">{thread.title}</span>
               </button>
               <Button
                 variant="ghost"
@@ -72,7 +71,7 @@ export function ThreadList({
             </p>
           )}
         </div>
-      </ScrollArea>
+      </div>
     </aside>
   );
 }

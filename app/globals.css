@@ -158,3 +158,22 @@ button, [role="button"], [role="menuitem"], [role="tab"], kbd, [data-slot="sideb
   user-select: none;
   -webkit-user-select: none;
 }
+
+/* OrganizationSwitcher (sidebar): truncate a long org name instead of clipping.
+   Clerk's appearance prop can't add min-width:0 up its own container chain, so
+   force min-width:0 on every descendant of the trigger and truncate the name. */
+.cl-organizationSwitcherTrigger {
+  min-width: 0;
+  max-width: 100%;
+}
+.cl-organizationSwitcherTrigger * {
+  min-width: 0 !important;
+}
+.cl-organizationPreviewMainIdentifier {
+  display: block !important;
+  max-width: 11ch !important; /* ~10 chars + ellipsis */
+  margin-right: 0.5rem !important; /* gap before the dropdown chevron */
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
