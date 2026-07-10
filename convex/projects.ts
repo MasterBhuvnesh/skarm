@@ -17,6 +17,8 @@ export const projectShape = {
   leadId: v.optional(v.id("users")),
   targetDate: v.optional(v.number()),
   color: v.optional(v.string()),
+  githubRepo: v.optional(v.string()),
+  githubRepoConnectedBy: v.optional(v.id("users")),
 };
 
 /** Issue counts by status — the project progress primitive. */
@@ -198,6 +200,7 @@ export const update = orgMutation({
     leadId: v.optional(v.union(v.id("users"), v.null())),
     targetDate: v.optional(v.union(v.number(), v.null())),
     color: v.optional(v.union(v.string(), v.null())),
+    githubRepo: v.optional(v.union(v.string(), v.null())),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -238,6 +241,19 @@ export const update = orgMutation({
     }
     if (args.color !== undefined) {
       updates.color = args.color ?? undefined;
+    }
+    if (args.githubRepo !== undefined) {
+      const repo = args.githubRepo?.trim();
+      if (repo) {
+        if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
+          throw new Error("Repo must look like owner/name");
+        }
+        updates.githubRepo = repo;
+        updates.githubRepoConnectedBy = ctx.user._id;
+      } else {
+        updates.githubRepo = undefined;
+        updates.githubRepoConnectedBy = undefined;
+      }
     }
 
     await ctx.db.patch(project._id, updates);

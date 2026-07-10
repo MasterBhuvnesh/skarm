@@ -54,6 +54,7 @@ type ProjectPatch = {
   leadId?: Id<"users"> | null;
   targetDate?: number | null;
   color?: string | null;
+  githubRepo?: string | null;
 };
 
 export function ProjectProperties({ project }: { project: Doc<"projects"> }) {
@@ -168,6 +169,35 @@ export function ProjectProperties({ project }: { project: Doc<"projects"> }) {
           ))}
         </div>
       </PropertyRow>
+
+      <PropertyRow label="GitHub repo">
+        <input
+          type="text"
+          key={project.githubRepo ?? ""}
+          defaultValue={project.githubRepo ?? ""}
+          placeholder="owner/repo"
+          onBlur={(e) => {
+            const value = e.target.value.trim();
+            if (value !== (project.githubRepo ?? "")) {
+              update({ githubRepo: value || null });
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.currentTarget.blur();
+            }
+          }}
+          aria-label="GitHub repo"
+          className="h-8 w-36 rounded-md px-2 text-right font-mono text-xs text-foreground outline-none transition-colors placeholder:font-sans placeholder:text-muted-foreground hover:bg-accent focus:bg-accent"
+        />
+      </PropertyRow>
+      {project.githubRepo && project.githubRepoConnectedBy && (
+        <p className="-mt-2 text-right text-[11px] text-muted-foreground">
+          Connected by{" "}
+          {members?.find((m) => m.userId === project.githubRepoConnectedBy)
+            ?.name ?? "a former member"}
+        </p>
+      )}
 
       <Separator className="my-1" />
 

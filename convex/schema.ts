@@ -181,6 +181,31 @@ export default defineSchema({
     mentions: v.optional(v.array(v.id("users"))),
   }).index("by_issue", ["issueId"]),
 
+  integrations: defineTable({
+    orgId: v.id("organizations"),
+    /** Integration kind; only GitHub today */
+    type: v.literal("github"),
+    enabled: v.boolean(),
+    /** HMAC secret for webhook signature verification */
+    webhookSecret: v.string(),
+    connectedBy: v.id("users"),
+  }).index("by_org", ["orgId"]),
+
+  pullRequests: defineTable({
+    orgId: v.id("organizations"),
+    issueId: v.id("issues"),
+    /** "owner/name" */
+    repo: v.string(),
+    number: v.number(),
+    title: v.string(),
+    url: v.string(),
+    state: v.union(v.literal("open"), v.literal("merged"), v.literal("closed")),
+    /** GitHub username of the PR author */
+    authorLogin: v.string(),
+  })
+    .index("by_issue", ["issueId"])
+    .index("by_org_repo_number", ["orgId", "repo", "number"]),
+
   notifications: defineTable({
     orgId: v.id("organizations"),
     /** Recipient */
@@ -219,6 +244,10 @@ export default defineSchema({
     /** Target date as ms since epoch */
     targetDate: v.optional(v.number()),
     color: v.optional(v.string()),
+    /** Connected GitHub repo, "owner/name" */
+    githubRepo: v.optional(v.string()),
+    /** Who connected the repo */
+    githubRepoConnectedBy: v.optional(v.id("users")),
   }).index("by_org", ["orgId"]),
 
   cycles: defineTable({

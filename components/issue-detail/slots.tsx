@@ -25,6 +25,7 @@ import { PresencePanel } from "@/components/issue-detail/presence-panel";
 import { LabelsPanel } from "@/components/issue-detail/labels-panel";
 import { RelationsPanel } from "@/components/issue-detail/relations-panel";
 import { AttachmentsPanel } from "@/components/issue-detail/attachments-panel";
+import { PullRequestsPanel } from "@/components/issue-detail/pull-requests-panel";
 import { PlanLimitListener } from "@/components/billing/upgrade-prompt";
 import { AiTriagePanel } from "@/components/ai/triage-panel";
 
@@ -42,5 +43,6 @@ export const issueDetailSidebarSlots: ComponentType<IssueDetailSlotProps>[] = [
   LabelsPanel,
   RelationsPanel,
   AttachmentsPanel,
+  PullRequestsPanel,
   IssueProjectCyclePanel,
 ];
