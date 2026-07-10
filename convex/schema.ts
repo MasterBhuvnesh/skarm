@@ -49,6 +49,13 @@ export const issueRelationTypeValidator = v.union(
   v.literal("duplicate_of")
 );
 
+export const templateCadenceValidator = v.union(
+  v.literal("daily"),
+  v.literal("weekdays"),
+  v.literal("weekly"),
+  v.literal("monthly")
+);
+
 export default defineSchema({
   // ── Synced from Clerk via webhooks ─────────────────────────────────────
   users: defineTable({
@@ -213,6 +220,31 @@ export default defineSchema({
     fileSize: v.number(),
     uploadedBy: v.id("users"),
   }).index("by_issue", ["issueId"]),
+
+  issueTemplates: defineTable({
+    orgId: v.id("organizations"),
+    teamId: v.id("teams"),
+    creatorId: v.id("users"),
+    /** Template name shown in pickers, e.g. "Bug report" */
+    name: v.string(),
+    /** Prefilled issue title (or title prefix for recurring issues) */
+    titlePrefix: v.string(),
+    /** Prefilled markdown description body */
+    description: v.optional(v.string()),
+    priority: issuePriorityValidator,
+    labelIds: v.array(v.id("labels")),
+    // ── Recurring schedule (rituals) ──
+    cadence: v.optional(templateCadenceValidator),
+    /** 0 (Sun) – 6 (Sat), for weekly cadence */
+    weekday: v.optional(v.number()),
+    /** 1–28, for monthly cadence */
+    dayOfMonth: v.optional(v.number()),
+    /** Next auto-creation time (ms). Set only while recurrence is enabled. */
+    nextRunAt: v.optional(v.number()),
+  })
+    .index("by_org", ["orgId"])
+    .index("by_team", ["teamId"])
+    .index("by_next_run", ["nextRunAt"]),
 
   views: defineTable({
     orgId: v.id("organizations"),

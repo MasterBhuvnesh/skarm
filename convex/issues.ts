@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { QueryCtx } from "./_generated/server";
+import { MutationCtx, QueryCtx } from "./_generated/server";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
 import { assertCanCreateIssue } from "./lib/limits";
@@ -86,6 +86,90 @@ export const getByNumber = orgQuery({
   },
 });
 
+/**
+ * Core issue creation shared by `issues.create` and recurring templates
+ * (convex/issueTemplates.ts). Owns numbering, sort order, labels, and the
+ * activity log — the only code path that claims issue numbers.
+ */
+export async function insertIssue(
+  ctx: MutationCtx,
+  args: {
+    org: Doc<"organizations">;
+    team: Doc<"teams">;
+    creatorId: Id<"users">;
+    title: string;
+    description?: string;
+    status?: Doc<"issues">["status"];
+    priority?: Doc<"issues">["priority"];
+    assigneeId?: Id<"users">;
+    projectId?: Id<"projects">;
+    cycleId?: Id<"cycles">;
+    parentIssueId?: Id<"issues">;
+    estimate?: number;
+    dueDate?: number;
+    labelIds?: Id<"labels">[];
+  }
+): Promise<Id<"issues">> {
+  const { org, team } = args;
+  await assertCanCreateIssue(ctx, org);
+
+  // Resolve labels up front; skip any that were deleted since selection.
+  const labels: Doc<"labels">[] = [];
+  for (const labelId of args.labelIds ?? []) {
+    const label = await ctx.db.get(labelId);
+    if (!label) {
+      continue;
+    }
+    if (label.orgId !== org._id) {
+      throw new Error("Label not found");
+    }
+    labels.push(label);
+  }
+
+  // Claim the next per-team issue number (ENG-1, ENG-2, ...).
+  const number = team.nextIssueNumber;
+  await ctx.db.patch(team._id, { nextIssueNumber: number + 1 });
+
+  // New issues sort to the top of their column.
+  const newest = await ctx.db
+    .query("issues")
+    .withIndex("by_team", (q) => q.eq("teamId", team._id))
+    .order("desc")
+    .first();
+  const sortOrder = (newest?.sortOrder ?? 0) + 1000;
+
+  const issueId = await ctx.db.insert("issues", {
+    orgId: org._id,
+    teamId: team._id,
+    number,
+    title: args.title.trim(),
+    description: args.description,
+    status: args.status ?? "todo",
+    priority: args.priority ?? "none",
+    assigneeId: args.assigneeId,
+    creatorId: args.creatorId,
+    projectId: args.projectId,
+    cycleId: args.cycleId,
+    parentIssueId: args.parentIssueId,
+    estimate: args.estimate,
+    dueDate: args.dueDate,
+    sortOrder,
+  });
+
+  for (const label of labels) {
+    await ctx.db.insert("issueLabels", { issueId, labelId: label._id });
+  }
+
+  await logActivity(ctx, {
+    orgId: org._id,
+    issueId,
+    actorId: args.creatorId,
+    type: "created",
+  });
+
+  return issueId;
+}
+
 export const create = orgMutation({
   args: {
     teamId: v.id("teams"),
@@ -99,6 +183,7 @@ export const create = orgMutation({
     parentIssueId: v.optional(v.id("issues")),
     estimate: v.optional(v.number()),
     dueDate: v.optional(v.number()),
+    labelIds: v.optional(v.array(v.id("labels"))),
   },
   returns: v.id("issues"),
   handler: async (ctx, args) => {
@@ -106,46 +191,12 @@ export const create = orgMutation({
     if (!team || team.orgId !== ctx.org._id) {
       throw new Error("Team not found");
     }
-    await assertCanCreateIssue(ctx, ctx.org);
-
-    // Claim the next per-team issue number (ENG-1, ENG-2, ...).
-    const number = team.nextIssueNumber;
-    await ctx.db.patch(team._id, { nextIssueNumber: number + 1 });
-
-    // New issues sort to the top of their column.
-    const newest = await ctx.db
-      .query("issues")
-      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
-      .order("desc")
-      .first();
-    const sortOrder = (newest?.sortOrder ?? 0) + 1000;
-
-    const issueId = await ctx.db.insert("issues", {
-      orgId: ctx.org._id,
-      teamId: args.teamId,
-      number,
-      title: args.title.trim(),
-      description: args.description,
-      status: args.status ?? "todo",
-      priority: args.priority ?? "none",
-      assigneeId: args.assigneeId,
+    return await insertIssue(ctx, {
+      ...args,
+      org: ctx.org,
+      team,
       creatorId: ctx.user._id,
-      projectId: args.projectId,
-      cycleId: args.cycleId,
-      parentIssueId: args.parentIssueId,
-      estimate: args.estimate,
-      dueDate: args.dueDate,
-      sortOrder,
     });
-
-    await logActivity(ctx, {
-      orgId: ctx.org._id,
-      issueId,
-      actorId: ctx.user._id,
-      type: "created",
-    });
-
-    return issueId;
   },
 });
 
