@@ -12,7 +12,7 @@
 - [ ] AI issue drafting: turn a one-line idea into a fully specced issue with acceptance criteria
 - [ ] Backlog grooming agent: suggest stale issues to close and duplicates to merge
 - [ ] Voice standup: speech-to-text standup notes summarized into a cycle report
-- [ ] GitHub integration: link PRs to issues and update statuses on merge
+- [x] GitHub integration: link PRs to issues and update statuses on merge
 
 ### INFRASTRUCTURE AND SCALING
 
