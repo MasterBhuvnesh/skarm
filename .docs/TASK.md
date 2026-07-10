@@ -1,34 +1,11 @@
-# Repo Gaps — TASK Checklist
-
-Scaffolding/quality gaps found in the repo. App logic (webhooks, rate limiting,
-vector agent) is solid — these are the things missing around it.
-
-## Real gaps
-
-- [ ] **Add CI** — `.github/workflows/ci.yml` running `lint` + `tsc --noEmit` + `build` on push/PR
-- [ ] **Add `README.md`** — current setup/run instructions (only `OLD.README.md` exists)
-- [ ] **Add Next.js error/loading/not-found UI** in `app/`:
-  - [ ] `app/error.tsx` and/or `app/global-error.tsx`
-  - [ ] `app/not-found.tsx`
-  - [ ] `app/loading.tsx` (Suspense fallback for async routes)
-- [ ] **Add `typecheck` script** — `tsc --noEmit` in `package.json`
-
-
-## Cheap high-value wins (do first)
-
-- [ ] error/loading/not-found files
-- [ ] minimal CI workflow
-
-## TAKE IT FURTHER
-
-Ideas to build on top of the base app.
+# Ideas to build on top of the base app.
 
 ### ADVANCED FEATURES
-
+- [x] Search bar in issues to search the entire issue body, not just the title
 - [ ] Inbox and notifications: in-app feed for mentions, assignments, and status changes
 - [ ] Roadmap view: timeline/Gantt visualization of projects and target dates
 - [ ] Cycle analytics: burndown charts, velocity, and scope-change tracking
-- [ ] Issue templates and recurring issues: standardize bug reports and rituals
+- [x] Issue templates and recurring issues: standardize bug reports and rituals
 
 ### AI IMPROVEMENTS
 
