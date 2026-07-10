@@ -4,9 +4,11 @@ import { useQuery } from "convex/react";
 import { Loader2, Search, SearchX } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { cn, matchSnippet } from "@/lib/utils";
 import {
   InputGroup,
   InputGroupAddon,
@@ -24,15 +26,6 @@ import { PriorityIcon } from "@/components/shared/priority-icon";
 import { StatusIcon } from "@/components/shared/status-icon";
 
 const ALL_TEAMS = "all";
-
-function useDebouncedValue<T>(value: T, delayMs: number): T {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), delayMs);
-    return () => clearTimeout(timer);
-  }, [value, delayMs]);
-  return debounced;
-}
 
 /**
  * Workspace-wide full-text issue search (Track A), backed by the
@@ -129,25 +122,38 @@ export default function SearchPage() {
                   {results?.length}{" "}
                   {results?.length === 1 ? "result" : "results"}
                 </p>
-                {results?.map((issue) => (
-                  <Link
-                    key={issue._id}
-                    href={`/${params.orgSlug}/issue/${issue._id}`}
-                    className="group flex h-10 items-center gap-3 border-b px-2 text-sm transition-colors hover:bg-accent/50"
-                  >
-                    <PriorityIcon priority={issue.priority} />
-                    <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">
-                      {issue.teamKey}-{issue.number}
-                    </span>
-                    <StatusIcon status={issue.status} />
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {issue.title}
-                    </span>
-                    <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
-                      {issue.teamName}
-                    </span>
-                  </Link>
-                ))}
+                {results?.map((issue) => {
+                  const snippet = matchSnippet(issue, debouncedQuery);
+                  return (
+                    <Link
+                      key={issue._id}
+                      href={`/${params.orgSlug}/issue/${issue._id}`}
+                      className={cn(
+                        "group flex items-center gap-3 border-b px-2 text-sm transition-colors hover:bg-accent/50",
+                        snippet ? "py-2" : "h-10"
+                      )}
+                    >
+                      <PriorityIcon priority={issue.priority} />
+                      <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">
+                        {issue.teamKey}-{issue.number}
+                      </span>
+                      <StatusIcon status={issue.status} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-medium">
+                          {issue.title}
+                        </div>
+                        {snippet ? (
+                          <div className="truncate text-xs text-muted-foreground">
+                            {snippet}
+                          </div>
+                        ) : null}
+                      </div>
+                      <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">
+                        {issue.teamName}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </div>

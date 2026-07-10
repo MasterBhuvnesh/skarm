@@ -1,17 +1,25 @@
 "use client";
 
 import { useQuery } from "convex/react";
-import { Columns3, List, Loader2, Plus } from "lucide-react";
+import { Columns3, List, Loader2, Plus, Search, SearchX } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCommands } from "@/components/commands/command-provider";
 import { IssueRow } from "@/components/issues/issue-row";
 import { STATUSES } from "@/components/shared/issue-meta";
 import { StatusIcon } from "@/components/shared/status-icon";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { matchSnippet } from "@/lib/utils";
 
 /**
  * Team issues list — the foundation vertical slice. Track A adds the board
@@ -24,6 +32,15 @@ export default function TeamIssuesPage() {
   const team = useQuery(api.teams.get, { teamId });
   const issues = useQuery(api.issues.listByTeam, { teamId });
   const { openCreateIssue } = useCommands();
+
+  // Full-text search over title AND description (search.issues merges the
+  // search_title / search_description indexes, scoped to this team).
+  const [query, setQuery] = useState("");
+  const debouncedQuery = useDebouncedValue(query.trim(), 250);
+  const searchResults = useQuery(
+    api.search.issues,
+    debouncedQuery ? { query: debouncedQuery, teamId } : "skip"
+  );
 
   if (team === undefined || issues === undefined) {
     return (
@@ -56,6 +73,16 @@ export default function TeamIssuesPage() {
           <span className="text-muted-foreground">Issues</span>
         </div>
         <div className="flex items-center gap-2">
+          <InputGroup className="h-7 w-56">
+            <InputGroupAddon>
+              <Search className="size-3.5" />
+            </InputGroupAddon>
+            <InputGroupInput
+              placeholder="Search title or description…"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </InputGroup>
           <Tabs
             value="list"
             onValueChange={(value) => {
@@ -82,7 +109,29 @@ export default function TeamIssuesPage() {
         </div>
       </header>
       <ScrollArea className="min-h-0 flex-1">
-        {issues.length === 0 ? (
+        {query.trim() ? (
+          searchResults === undefined || query.trim() !== debouncedQuery ? (
+            <div className="flex items-center justify-center py-32">
+              <Loader2 className="size-4 animate-spin text-muted-foreground" />
+            </div>
+          ) : searchResults.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-32 text-center">
+              <SearchX className="size-6 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">
+                No issues match “{debouncedQuery}”.
+              </p>
+            </div>
+          ) : (
+            searchResults.map((issue) => (
+              <IssueRow
+                key={issue._id}
+                issue={issue}
+                teamKey={team.key}
+                descriptionSnippet={matchSnippet(issue, debouncedQuery)}
+              />
+            ))
+          )
+        ) : issues.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-32 text-center">
             <p className="text-sm text-muted-foreground">
               No issues yet. Press <kbd className="rounded border bg-muted px-1 font-mono text-xs">C</kbd> to create one.
