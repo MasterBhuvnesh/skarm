@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Users } from "lucide-react";
+import { CreditCard, LayoutTemplate, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 const SETTINGS_PAGES = [
   { label: "Billing", segment: "billing", icon: CreditCard },
   { label: "Members", segment: "members", icon: Users },
+  { label: "Templates", segment: "templates", icon: LayoutTemplate },
 ] as const;
 
 /** Left-hand navigation for the workspace settings section. */

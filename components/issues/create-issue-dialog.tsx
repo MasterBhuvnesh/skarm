@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
+import { LayoutTemplate } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -43,19 +44,46 @@ export function CreateIssueDialog({
   const params = useParams<{ orgSlug?: string }>();
   const router = useRouter();
   const teams = useQuery(api.teams.list, open ? {} : "skip");
+  const templates = useQuery(api.issueTemplates.list, open ? {} : "skip");
   const createIssue = useMutation(api.issues.create);
 
   const [selectedTeamId, setSelectedTeamId] = useState<
     Id<"teams"> | undefined
   >(undefined);
+  const [templateId, setTemplateId] = useState<Id<"issueTemplates"> | null>(
+    null
+  );
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<IssueStatus>("todo");
   const [priority, setPriority] = useState<IssuePriority>("none");
+  const [labelIds, setLabelIds] = useState<Id<"labels">[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   // Fall back to the default/first team without needing an effect.
   const teamId = selectedTeamId ?? defaultTeamId ?? teams?.[0]?._id;
+  const teamTemplates = templates?.filter((t) => t.teamId === teamId) ?? [];
+
+  const applyTemplate = (id: Id<"issueTemplates">) => {
+    const template = templates?.find((t) => t._id === id);
+    if (!template) {
+      return;
+    }
+    setTemplateId(id);
+    setTitle(template.titlePrefix);
+    setDescription(template.description ?? "");
+    setPriority(template.priority);
+    setLabelIds(template.labelIds);
+  };
+
+  const resetForm = () => {
+    setTemplateId(null);
+    setTitle("");
+    setDescription("");
+    setStatus("todo");
+    setPriority("none");
+    setLabelIds([]);
+  };
 
   const handleSubmit = async () => {
     if (!teamId || !title.trim()) {
@@ -69,13 +97,11 @@ export function CreateIssueDialog({
         description: description.trim() || undefined,
         status,
         priority,
+        labelIds: labelIds.length > 0 ? labelIds : undefined,
       });
       toast.success("Issue created");
       onOpenChange(false);
-      setTitle("");
-      setDescription("");
-      setStatus("todo");
-      setPriority("none");
+      resetForm();
       if (params.orgSlug) {
         router.push(`/${params.orgSlug}/issue/${issueId}`);
       }
@@ -118,7 +144,10 @@ export function CreateIssueDialog({
           <div className="flex flex-wrap items-center gap-2">
             <Select
               value={teamId ?? ""}
-              onValueChange={(value) => setSelectedTeamId(value as Id<"teams">)}
+              onValueChange={(value) => {
+                setSelectedTeamId(value as Id<"teams">);
+                setTemplateId(null);
+              }}
             >
               <SelectTrigger size="sm" className="w-auto gap-1.5">
                 <SelectValue placeholder="Team" />
@@ -131,6 +160,31 @@ export function CreateIssueDialog({
                 ))}
               </SelectContent>
             </Select>
+            {teamTemplates.length > 0 ? (
+              <Select
+                value={templateId ?? "none"}
+                onValueChange={(value) => {
+                  if (value === "none") {
+                    setTemplateId(null);
+                  } else {
+                    applyTemplate(value as Id<"issueTemplates">);
+                  }
+                }}
+              >
+                <SelectTrigger size="sm" className="w-auto gap-1.5">
+                  <LayoutTemplate className="size-3.5" />
+                  <SelectValue placeholder="Template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template</SelectItem>
+                  {teamTemplates.map((template) => (
+                    <SelectItem key={template._id} value={template._id}>
+                      {template.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : null}
             <Select
               value={status}
               onValueChange={(value) => setStatus(value as IssueStatus)}
