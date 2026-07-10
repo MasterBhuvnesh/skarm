@@ -32,8 +32,8 @@ type Schedule = {
   dayOfMonth?: number;
 };
 
-/** Next occurrence strictly after `after`, at RUN_HOUR_UTC. */
-function computeNextRun(after: number, schedule: Schedule): number {
+/** Next occurrence strictly after `after`, at RUN_HOUR_UTC. Exported for seed.ts. */
+export function computeNextRun(after: number, schedule: Schedule): number {
   const d = new Date(after);
   d.setUTCHours(RUN_HOUR_UTC, 0, 0, 0);
   const step = () => d.setUTCDate(d.getUTCDate() + 1);

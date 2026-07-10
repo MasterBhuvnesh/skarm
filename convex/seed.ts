@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
+import { computeNextRun } from "./issueTemplates";
 import { logActivity } from "./lib/activity";
 import { orgAdminMutation } from "./lib/customFunctions";
 
@@ -71,12 +72,41 @@ const PROJECTS: {
   },
 ];
 
-const TEAMS: { name: string; key: string; description: string; cycles: ("prev" | "current" | "next")[]; issues: IssueSpec[] }[] = [
+type TemplateSpec = {
+  name: string;
+  titlePrefix: string;
+  description?: string;
+  priority: IssuePriority;
+  labels?: string[];
+  cadence?: Doc<"issueTemplates">["cadence"];
+  /** 0 (Sun) – 6 (Sat), for weekly cadence. */
+  weekday?: number;
+};
+
+const TEAMS: { name: string; key: string; description: string; cycles: ("prev" | "current" | "next")[]; issues: IssueSpec[]; templates?: TemplateSpec[] }[] = [
   {
     name: "Engineering",
     key: "ENG",
     description: "Product engineering — app, API and infrastructure.",
     cycles: ["prev", "current", "next"],
+    templates: [
+      {
+        name: "Bug report",
+        titlePrefix: "Bug: ",
+        description:
+          "## Steps to reproduce\n1. \n\n## Expected behavior\n\n## Actual behavior\n\n## Environment\n- Browser/OS: ",
+        priority: "high",
+        labels: ["Bug"],
+      },
+      {
+        name: "Weekly standup",
+        titlePrefix: "Standup",
+        description: "## Last week\n- \n\n## This week\n- \n\n## Blockers\n- ",
+        priority: "medium",
+        cadence: "weekly",
+        weekday: 1,
+      },
+    ],
     issues: [
       { title: "Set up CI pipeline with preview deploys", status: "done", priority: "high", estimate: 3, assign: true, cycle: "prev", labels: ["Infra"] },
       { title: "Fix N+1 queries on issue list", description: "The list view fires one query per row for labels. Batch them with a single indexed query.", status: "done", priority: "urgent", estimate: 2, assign: true, cycle: "prev", labels: ["Performance", "Bug"] },
@@ -314,6 +344,25 @@ export const demoData = orgAdminMutation({
       }
 
       await ctx.db.patch(teamId, { nextIssueNumber: nextNumber });
+
+      for (const spec of team.templates ?? []) {
+        await ctx.db.insert("issueTemplates", {
+          orgId,
+          teamId,
+          creatorId: userId,
+          name: spec.name,
+          titlePrefix: spec.titlePrefix,
+          description: spec.description,
+          priority: spec.priority,
+          labelIds: (spec.labels ?? []).flatMap((name) => {
+            const labelId = labelIds.get(name);
+            return labelId ? [labelId] : [];
+          }),
+          cadence: spec.cadence,
+          weekday: spec.weekday,
+          nextRunAt: spec.cadence ? computeNextRun(now, spec) : undefined,
+        });
+      }
     }
 
     let commentCount = 0;
