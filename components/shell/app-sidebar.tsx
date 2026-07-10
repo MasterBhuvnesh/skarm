@@ -137,20 +137,6 @@ export function AppSidebar() {
                 variant="ghost"
                 size="icon"
                 className="size-7"
-                onClick={openCreateIssue}
-                aria-label="New issue"
-              >
-                <SquarePen className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">New issue (C)</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
                 onClick={() => setCollapsed((c) => !c)}
                 aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
               >
@@ -168,33 +154,66 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <div className={cn("pb-2", collapsed ? "flex justify-center" : "px-3")}>
+      <div
+        className={cn(
+          "flex pb-2",
+          collapsed ? "flex-col items-center gap-1" : "flex-col gap-1.5 px-3"
+        )}
+      >
         {collapsed ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-7"
-                onClick={openPalette}
-                aria-label="Search"
-              >
-                <Search className="size-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">Search (⌘K)</TooltipContent>
-          </Tooltip>
+          <>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={openCreateIssue}
+                  aria-label="Create issue"
+                >
+                  <SquarePen className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Create issue (C)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-7"
+                  onClick={openPalette}
+                  aria-label="Search"
+                >
+                  <Search className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Search (⌘K)</TooltipContent>
+            </Tooltip>
+          </>
         ) : (
-          <button
-            onClick={openPalette}
-            className="flex h-7 w-full items-center gap-2 rounded-md border bg-background px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <Search className="size-3.5" />
-            Search…
-            <kbd className="ml-auto rounded border bg-muted px-1 font-mono text-[10px]">
-              ⌘ K
-            </kbd>
-          </button>
+          <>
+            <button
+              onClick={openCreateIssue}
+              className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              <SquarePen className="size-4" />
+              Create issue
+              <kbd className="ml-auto rounded border bg-muted px-1 font-mono text-[10px]">
+                C
+              </kbd>
+            </button>
+            <button
+              onClick={openPalette}
+              className="flex h-7 w-full items-center gap-2 rounded-md border bg-background px-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <Search className="size-3.5" />
+              Search…
+              <kbd className="ml-auto rounded border bg-muted px-1 font-mono text-[10px]">
+                ⌘ K
+              </kbd>
+            </button>
+          </>
         )}
       </div>
 

@@ -177,3 +177,22 @@ button, [role="button"], [role="menuitem"], [role="tab"], kbd, [data-slot="sideb
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
 }
+
+/* Notification badge (pending invites count): Clerk absolutely positions its
+   wrapper 8px above/past the trigger's top-right corner, so it gets clipped by
+   the sidebar edge and collides with the New-issue button. The wrapper span has
+   no cl-* class, so target it via :has() and let it flow inline between the org
+   name and the chevron instead. */
+.cl-organizationSwitcherTrigger > span:has(> .cl-notificationBadge) {
+  position: static !important;
+}
+
+/* The min-width:0 override above lets EVERY flex item's box shrink, but the
+   avatar/badge/chevron render at fixed size, so their contents bleed onto the
+   sidebar buttons when space runs out. Keep them rigid; only the org name
+   (which truncates) absorbs the shrink. */
+.cl-organizationSwitcherTrigger .cl-avatarBox,
+.cl-organizationSwitcherTrigger > span:has(> .cl-notificationBadge),
+.cl-organizationSwitcherTriggerIcon {
+  flex-shrink: 0 !important;
+}
