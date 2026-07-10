@@ -200,7 +200,7 @@ export function ProjectProperties({ project }: { project: Doc<"projects"> }) {
             update({ targetDate: inputDateToMs(e.target.value, "end") ?? null })
           }
           aria-label="Target date"
-          className="h-8 rounded-md px-2 text-xs text-foreground outline-none transition-colors hover:bg-accent [color-scheme:light] dark:[color-scheme:dark]"
+          className="h-8 rounded-md px-2 text-xs text-foreground outline-none transition-colors hover:bg-accent scheme-light dark:scheme-dark"
         />
       </PropertyRow>
 
