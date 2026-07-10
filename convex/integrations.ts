@@ -4,6 +4,7 @@ import {
   internalMutation,
   QueryCtx,
 } from "./_generated/server";
+import { scheduleGithubIssueSync } from "./github/sync";
 import { logActivity } from "./lib/activity";
 import { orgAdminMutation, orgQuery } from "./lib/customFunctions";
 import { createNotification } from "./notifications";
@@ -355,6 +356,8 @@ export const handlePullRequest = internalMutation({
       }
 
       await ctx.db.patch(issue._id, { status: nextStatus });
+      // Close/reopen the synced GitHub issue too (e.g. PR merged → done).
+      await scheduleGithubIssueSync(ctx, issue._id);
       await logActivity(ctx, {
         orgId,
         issueId: issue._id,

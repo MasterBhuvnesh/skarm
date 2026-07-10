@@ -124,6 +124,10 @@ export const listRepositories = action({
   },
 });
 
+function issueBody(description: string | undefined, identifier: string) {
+  return `${description ?? ""}\n\n---\n_Synced from Cohere issue **${identifier}**._`;
+}
+
 /** Create the GitHub twin of a Cohere issue and record the link. */
 export const pushIssue = internalAction({
   args: { issueId: v.id("issues"), repo: v.string() },
@@ -143,7 +147,7 @@ export const pushIssue = internalAction({
         `/repos/${args.repo}/issues`,
         {
           title: info.title,
-          body: `${info.description ?? ""}\n\n---\n_Synced from Cohere issue **${info.identifier}**._`,
+          body: issueBody(info.description, info.identifier),
         }
       );
       await ctx.runMutation(internal.github.sync.recordGithubIssue, {
@@ -153,6 +157,91 @@ export const pushIssue = internalAction({
         number: created.number,
         url: created.html_url,
       });
+    } catch (error) {
+      await ctx.runMutation(internal.github.sync.recordSyncFailure, {
+        orgId: info.orgId,
+        issueId: args.issueId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return null;
+  },
+});
+
+/**
+ * Mirror the current title/description/status onto every linked GitHub
+ * issue. Pushes the full state, so rapid successive edits are idempotent —
+ * the last scheduled push wins.
+ */
+export const pushIssueUpdate = internalAction({
+  args: { issueId: v.id("issues") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const info = await ctx.runQuery(internal.github.sync.getIssueForSync, {
+      issueId: args.issueId,
+    });
+    if (!info || info.links.length === 0) {
+      return null;
+    }
+    try {
+      const token = await installationToken(info.installationId);
+      const closed = info.status === "done" || info.status === "canceled";
+      for (const link of info.links) {
+        await githubFetch(
+          token,
+          "PATCH",
+          `/repos/${link.repo}/issues/${link.number}`,
+          {
+            title: info.title,
+            body: issueBody(info.description, info.identifier),
+            state: closed ? "closed" : "open",
+            ...(closed
+              ? {
+                  state_reason:
+                    info.status === "done" ? "completed" : "not_planned",
+                }
+              : {}),
+          }
+        );
+      }
+    } catch (error) {
+      await ctx.runMutation(internal.github.sync.recordSyncFailure, {
+        orgId: info.orgId,
+        issueId: args.issueId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return null;
+  },
+});
+
+/** Surface a Cohere attachment on the linked GitHub issue(s) as a comment. */
+export const pushAttachmentComment = internalAction({
+  args: {
+    issueId: v.id("issues"),
+    fileName: v.string(),
+    url: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const info = await ctx.runQuery(internal.github.sync.getIssueForSync, {
+      issueId: args.issueId,
+    });
+    if (!info || info.links.length === 0) {
+      return null;
+    }
+    try {
+      const token = await installationToken(info.installationId);
+      for (const link of info.links) {
+        await githubFetch(
+          token,
+          "POST",
+          `/repos/${link.repo}/issues/${link.number}/comments`,
+          {
+            body: `📎 Attachment added in Cohere: [${args.fileName}](${args.url})`,
+          }
+        );
+      }
     } catch (error) {
       await ctx.runMutation(internal.github.sync.recordSyncFailure, {
         orgId: info.orgId,

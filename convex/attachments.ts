@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { scheduleGithubAttachmentComment } from "./github/sync";
 import { getOrgIssue } from "./issues";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
@@ -64,6 +65,14 @@ export const create = orgMutation({
       field: "attachment",
       newValue: fileName,
     });
+
+    // Surface the file on the linked GitHub issue (as a comment), if any.
+    await scheduleGithubAttachmentComment(
+      ctx,
+      issue._id,
+      fileName,
+      args.storageId
+    );
 
     return attachmentId;
   },

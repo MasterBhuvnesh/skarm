@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import { MutationCtx, QueryCtx } from "./_generated/server";
+import { scheduleGithubIssueSync } from "./github/sync";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
 import { assertCanCreateIssue } from "./lib/limits";
@@ -344,6 +345,15 @@ export const update = orgMutation({
           newValue: updates.status,
         });
       }
+    }
+
+    // Mirror content/state changes onto the linked GitHub issue, if any.
+    if (
+      args.title !== undefined ||
+      args.description !== undefined ||
+      updates.status !== undefined
+    ) {
+      await scheduleGithubIssueSync(ctx, issue._id);
     }
     return null;
   },

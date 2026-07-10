@@ -1,5 +1,11 @@
 import { v } from "convex/values";
-import { internalMutation, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
+import { Id } from "../_generated/dataModel";
+import {
+  internalMutation,
+  internalQuery,
+  MutationCtx,
+} from "../_generated/server";
 import { logActivity } from "../lib/activity";
 import { getAuthContext } from "../lib/auth";
 import { orgQuery } from "../lib/customFunctions";
@@ -31,7 +37,7 @@ export const getAuthedInstallation = internalQuery({
   },
 });
 
-/** Everything pushIssue needs, or null if sync is no longer possible. */
+/** Everything the push actions need, or null if sync is no longer possible. */
 export const getIssueForSync = internalQuery({
   args: { issueId: v.id("issues") },
   returns: v.union(
@@ -41,8 +47,11 @@ export const getIssueForSync = internalQuery({
       orgId: v.id("organizations"),
       title: v.string(),
       description: v.optional(v.string()),
+      status: v.string(),
       /** Display identifier, e.g. ENG-42. */
       identifier: v.string(),
+      /** Linked GitHub issues to keep in sync. */
+      links: v.array(v.object({ repo: v.string(), number: v.number() })),
     })
   ),
   handler: async (ctx, args) => {
@@ -58,15 +67,65 @@ export const getIssueForSync = internalQuery({
       return null;
     }
     const team = await ctx.db.get(issue.teamId);
+    const links = await ctx.db
+      .query("githubIssues")
+      .withIndex("by_issue", (q) => q.eq("issueId", args.issueId))
+      .collect();
     return {
       installationId: integration.installationId,
       orgId: issue.orgId,
       title: issue.title,
       description: issue.description,
+      status: issue.status,
       identifier: `${team?.key ?? "?"}-${issue.number}`,
+      links: links.map((link) => ({ repo: link.repo, number: link.number })),
     };
   },
 });
+
+/**
+ * Mutation-side hooks: schedule a push when (and only when) the issue has a
+ * linked GitHub issue. Called after the local write, so the action reads the
+ * committed state.
+ */
+export async function scheduleGithubIssueSync(
+  ctx: MutationCtx,
+  issueId: Id<"issues">
+): Promise<void> {
+  const link = await ctx.db
+    .query("githubIssues")
+    .withIndex("by_issue", (q) => q.eq("issueId", issueId))
+    .first();
+  if (link) {
+    await ctx.scheduler.runAfter(0, internal.github.client.pushIssueUpdate, {
+      issueId,
+    });
+  }
+}
+
+export async function scheduleGithubAttachmentComment(
+  ctx: MutationCtx,
+  issueId: Id<"issues">,
+  fileName: string,
+  storageId: Id<"_storage">
+): Promise<void> {
+  const link = await ctx.db
+    .query("githubIssues")
+    .withIndex("by_issue", (q) => q.eq("issueId", issueId))
+    .first();
+  if (!link) {
+    return;
+  }
+  const url = await ctx.storage.getUrl(storageId);
+  if (!url) {
+    return;
+  }
+  await ctx.scheduler.runAfter(
+    0,
+    internal.github.client.pushAttachmentComment,
+    { issueId, fileName, url }
+  );
+}
 
 export const recordGithubIssue = internalMutation({
   args: {
