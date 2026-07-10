@@ -21,12 +21,14 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 - Full issue tracking: statuses, five priority levels, assignees, estimates, due dates, labels
 - Team-scoped issue keys (`ENG-42`, `DESIGN-7`) with per-team sequences
 - Kanban board with drag and drop (@dnd-kit) and fractional sort ordering; moves sync to all clients instantly
-- Full-text search scoped to the workspace, plus saved filter views
+- Full-text search over issue titles AND descriptions, with search bars on the issues list and board views showing why a result matched
+- Issue templates per team (prefilled title, description, priority, labels) and recurring issues: rituals like weekly standups created automatically on a daily/weekdays/weekly/monthly cadence
 - Command palette (Cmd+K) and single-key shortcuts
 
 ### COLLABORATION
 
 - Comments with @mentions and a full activity feed per issue
+- Inbox with in-app notifications for @mentions, assignments, and status changes, with a live unread badge in the sidebar
 - Sub-issues and issue relations (blocks, blocked by, related, duplicate of)
 - File attachments via Convex storage
 - Live presence: see who is viewing the same issue
@@ -171,10 +173,12 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | labels / issueLabels     | Labels, many-to-many             | `name`, `color` / `issueId`, `labelId`                                 |
 | issueRelations           | Links between issues             | `issueId`, `relatedIssueId`, `type`                                    |
 | comments                 | Issue discussions                | `issueId`, `authorId`, `body`, `mentions[]`                            |
+| notifications            | In-app inbox feed                | `userId`, `actorId`, `issueId`, `type`, `read`                         |
 | activity                 | Audit trail per issue            | `issueId`, `actorId`, `type`, `oldValue`, `newValue`                   |
 | projects                 | Cross-team initiatives           | `orgId`, `status`, `leadId`, `targetDate`                              |
 | cycles                   | Sprints per team                 | `teamId`, `number`, `startDate`, `endDate`                             |
 | attachments              | Files on issues                  | `issueId`, `storageId`, `fileName`                                     |
+| issueTemplates           | Templates + recurring schedules  | `teamId`, `titlePrefix`, `priority`, `cadence`, `nextRunAt`            |
 | views                    | Saved filter configurations      | `creatorId`, `filters`, `shared`                                       |
 
 ## PROJECT STRUCTURE
