@@ -135,7 +135,7 @@ function IssueDetail({
             ))}
           </div>
         </ScrollArea>
-        <aside className="w-72 shrink-0 border-l p-4">
+        <aside className="w-72 shrink-0 overflow-y-auto border-l p-4">
           <h3 className="mb-3 text-xs font-medium text-muted-foreground">
             Properties
           </h3>
