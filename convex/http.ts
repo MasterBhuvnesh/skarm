@@ -80,9 +80,13 @@ async function verifyGithubSignature(
   return diff === 0;
 }
 
-type GithubPullRequestEvent = {
+type GithubEvent = {
   action?: string;
+  installation?: { id?: number };
   repository?: { full_name?: string };
+  repositories?: { full_name?: string }[];
+  repositories_added?: { full_name?: string }[];
+  repositories_removed?: { full_name?: string }[];
   pull_request?: {
     number: number;
     title?: string;
@@ -95,51 +99,57 @@ type GithubPullRequestEvent = {
 };
 
 /**
- * Per-org GitHub webhook: configure in the repo as
- * `https://<deployment>.convex.site/github-webhook?org=<orgId>` with the
- * secret from Settings → Integrations. Links PRs to issues by identifier
- * and drives status changes (opened → in_review, merged → done).
+ * GitHub App webhook (one per deployment, secret in GITHUB_WEBHOOK_SECRET).
+ * Installation events keep each org's repo list in sync; pull_request
+ * events link PRs to issues by identifier and drive status changes
+ * (opened → in_review, merged → done).
  */
 http.route({
   path: "/github-webhook",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
-    const org = new URL(request.url).searchParams.get("org");
-    if (!org) {
-      return new Response("Missing org query param", { status: 400 });
-    }
-
-    const integration = await ctx.runQuery(
-      internal.integrations.getForWebhook,
-      { orgId: org }
-    );
-    if (!integration) {
-      return new Response("GitHub integration not connected", { status: 404 });
+    const secret = process.env.GITHUB_WEBHOOK_SECRET;
+    if (!secret) {
+      console.error("GITHUB_WEBHOOK_SECRET is not set");
+      return new Response("Webhook secret not configured", { status: 500 });
     }
 
     const payload = await request.text();
     const signature = request.headers.get("x-hub-signature-256");
     if (
       !signature ||
-      !(await verifyGithubSignature(
-        integration.webhookSecret,
-        payload,
-        signature
-      ))
+      !(await verifyGithubSignature(secret, payload, signature))
     ) {
       return new Response("Invalid signature", { status: 401 });
     }
 
-    // Disabled integrations ack silently so GitHub doesn't retry.
-    if (!integration.enabled) {
+    const eventType = request.headers.get("x-github-event");
+    const event = JSON.parse(payload) as GithubEvent;
+    const installationId = event.installation?.id;
+    if (!installationId) {
       return new Response(null, { status: 200 });
     }
 
-    if (request.headers.get("x-github-event") !== "pull_request") {
+    if (
+      eventType === "installation" ||
+      eventType === "installation_repositories"
+    ) {
+      const names = (repos?: { full_name?: string }[]) =>
+        repos?.flatMap((repo) => (repo.full_name ? [repo.full_name] : []));
+      await ctx.runMutation(internal.integrations.handleInstallationEvent, {
+        installationId,
+        action: event.action ?? "",
+        repositories: names(event.repositories),
+        repositoriesAdded: names(event.repositories_added),
+        repositoriesRemoved: names(event.repositories_removed),
+      });
       return new Response(null, { status: 200 });
     }
 
-    const event = JSON.parse(payload) as GithubPullRequestEvent;
+    if (eventType !== "pull_request") {
+      return new Response(null, { status: 200 });
+    }
+
     const pr = event.pull_request;
     const handledActions = [
       "opened",
@@ -153,7 +163,7 @@ http.route({
     }
 
     await ctx.runMutation(internal.integrations.handlePullRequest, {
-      orgId: integration.orgId,
+      installationId,
       merged: pr.merged === true,
       closed: event.action === "closed",
       repo: event.repository?.full_name ?? "",
@@ -165,6 +175,42 @@ http.route({
     });
 
     return new Response(null, { status: 200 });
+  }),
+});
+
+/**
+ * GitHub App post-install redirect (the app's "Setup URL"). GitHub sends
+ * the user here with ?installation_id=…&state=<nonce>; completeSetup binds
+ * the installation to the org that minted the nonce, then we bounce the
+ * user back to the workspace's integrations settings.
+ */
+http.route({
+  path: "/github-setup",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const installationId = Number(url.searchParams.get("installation_id"));
+    const nonce = url.searchParams.get("state");
+    if (!nonce || !Number.isInteger(installationId)) {
+      return new Response("Missing installation_id or state", { status: 400 });
+    }
+
+    const orgSlug = await ctx.runMutation(
+      internal.integrations.completeSetup,
+      { nonce, installationId }
+    );
+    if (orgSlug === null) {
+      return new Response(
+        "This install link expired — retry Connect from Settings → Integrations.",
+        { status: 400 }
+      );
+    }
+
+    const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${siteUrl}/${orgSlug}/settings/integrations` },
+    });
   }),
 });
 

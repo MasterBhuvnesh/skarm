@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { Check, Copy, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -30,46 +30,30 @@ function GithubIcon({ className }: { className?: string }) {
   );
 }
 
-function CopyField({ label, value }: { label: string; value: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-1.5">
-        <code className="min-w-0 flex-1 truncate rounded-md border bg-muted/50 px-2 py-1.5 font-mono text-xs">
-          {value}
-        </code>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 shrink-0"
-          aria-label={`Copy ${label}`}
-          onClick={() => {
-            navigator.clipboard.writeText(value);
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1500);
-          }}
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export function IntegrationsManager() {
-  const integration = useQuery(api.integrations.get);
-  const connect = useMutation(api.integrations.connect);
+  const data = useQuery(api.integrations.get);
+  const beginInstall = useMutation(api.integrations.beginInstall);
   const setEnabled = useMutation(api.integrations.setEnabled);
   const disconnect = useMutation(api.integrations.disconnect);
+  const [connecting, setConnecting] = useState(false);
 
   const onError = (error: unknown) => {
+    setConnecting(false);
     toast.error(error instanceof Error ? error.message : "Something went wrong");
   };
 
-  const webhookUrl = integration
-    ? `${process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/github-webhook?org=${integration.orgId}`
-    : "";
+  const connect = async () => {
+    setConnecting(true);
+    try {
+      // GitHub shows its install screen where the user picks repositories,
+      // then redirects back here via the app's Setup URL.
+      window.location.href = await beginInstall();
+    } catch (error) {
+      onError(error);
+    }
+  };
+
+  const connection = data?.connection ?? null;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
@@ -84,27 +68,27 @@ export function IntegrationsManager() {
         <div className="flex items-center gap-3 p-4">
           <GithubIcon className="size-6 shrink-0" />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              GitHub
-            </div>
+            <div className="text-sm font-medium">GitHub</div>
             <p className="truncate text-xs text-muted-foreground">
-              {integration
-                ? `Connected by ${integration.connectedByName} · ${formatRelativeTime(integration.connectedAt)}`
+              {connection
+                ? `Connected by ${connection.connectedByName} · ${formatRelativeTime(connection.connectedAt)}`
                 : "Link pull requests to issues and update statuses on merge."}
             </p>
           </div>
-          {integration === undefined ? (
+          {data === undefined ? (
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
-          ) : integration === null ? (
+          ) : connection === null ? (
             <Button
               size="sm"
-              onClick={() => connect().catch(onError)}
+              disabled={!data.appConfigured || connecting}
+              onClick={() => void connect()}
             >
+              {connecting && <Loader2 className="size-3.5 animate-spin" />}
               Connect
             </Button>
           ) : (
             <Switch
-              checked={integration.enabled}
+              checked={connection.enabled}
               onCheckedChange={(enabled) =>
                 setEnabled({ enabled }).catch(onError)
               }
@@ -113,29 +97,65 @@ export function IntegrationsManager() {
           )}
         </div>
 
-        {integration && (
+        {data !== undefined && connection === null && !data.appConfigured && (
+          <>
+            <Separator />
+            <p className="p-4 text-xs text-muted-foreground">
+              The GitHub App isn&apos;t configured on this deployment yet. An
+              admin needs to create one (GitHub → Settings → Developer
+              settings → GitHub Apps) with webhook URL{" "}
+              <code className="rounded bg-muted px-1">
+                {process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/github-webhook
+              </code>
+              , setup URL{" "}
+              <code className="rounded bg-muted px-1">
+                {process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/github-setup
+              </code>{" "}
+              (with redirect on install enabled), pull-request read
+              permission, and pull request + installation events. Then run{" "}
+              <code className="rounded bg-muted px-1">
+                npx convex env set GITHUB_APP_SLUG your-app-slug
+              </code>{" "}
+              and{" "}
+              <code className="rounded bg-muted px-1">
+                npx convex env set GITHUB_WEBHOOK_SECRET whsec…
+              </code>
+            </p>
+          </>
+        )}
+
+        {connection && (
           <>
             <Separator />
             <div className="flex flex-col gap-3 p-4">
-              {integration.webhookSecret ? (
-                <>
-                  <p className="text-xs text-muted-foreground">
-                    In your GitHub repo: Settings → Webhooks → Add webhook.
-                    Use content type <code>application/json</code>, subscribe
-                    to <span className="font-medium">Pull requests</span>{" "}
-                    events, and reference issues as{" "}
-                    <code className="rounded bg-muted px-1">ENG-42</code> in
-                    the branch name, PR title or body. Opened PRs move issues
-                    to In Review; merged PRs move them to Done.
+              <div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Repositories
+                </span>
+                {connection.repositories.length === 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Syncing from GitHub — the list fills in as events arrive.
                   </p>
-                  <CopyField label="Payload URL" value={webhookUrl} />
-                  <CopyField label="Secret" value={integration.webhookSecret} />
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Webhook settings are visible to workspace admins.
-                </p>
-              )}
+                ) : (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {connection.repositories.map((repo) => (
+                      <span
+                        key={repo}
+                        className="rounded-md border bg-muted/50 px-2 py-0.5 font-mono text-xs"
+                      >
+                        {repo}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Reference issues as{" "}
+                <code className="rounded bg-muted px-1">ENG-42</code> in a
+                branch name, PR title or body. Opened PRs move issues to In
+                Review; merged PRs move them to Done. Manage repository access
+                from your GitHub App installation settings.
+              </p>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -150,9 +170,10 @@ export function IntegrationsManager() {
                   <AlertDialogHeader>
                     <AlertDialogTitle>Disconnect GitHub?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      The webhook secret is deleted and events stop being
-                      processed. Already-linked pull requests stay on their
-                      issues.
+                      Events stop being processed for this workspace.
+                      Already-linked pull requests stay on their issues. To
+                      revoke repository access entirely, also uninstall the
+                      app from GitHub.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

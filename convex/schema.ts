@@ -186,10 +186,23 @@ export default defineSchema({
     /** Integration kind; only GitHub today */
     type: v.literal("github"),
     enabled: v.boolean(),
-    /** HMAC secret for webhook signature verification */
-    webhookSecret: v.string(),
     connectedBy: v.id("users"),
-  }).index("by_org", ["orgId"]),
+    /** GitHub App installation id (set once install completes) */
+    installationId: v.optional(v.number()),
+    /** Repos the installation grants ("owner/name"), synced from webhooks */
+    repositories: v.optional(v.array(v.string())),
+    /** Legacy manual-webhook secret; superseded by the app-level secret */
+    webhookSecret: v.optional(v.string()),
+  })
+    .index("by_org", ["orgId"])
+    .index("by_installation", ["installationId"]),
+
+  /** Single-use nonces binding a GitHub App install back to org + user. */
+  githubInstallStates: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.id("users"),
+    nonce: v.string(),
+  }).index("by_nonce", ["nonce"]),
 
   pullRequests: defineTable({
     orgId: v.id("organizations"),

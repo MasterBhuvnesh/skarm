@@ -2,7 +2,6 @@ import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
-  internalQuery,
   QueryCtx,
 } from "./_generated/server";
 import { logActivity } from "./lib/activity";
@@ -10,11 +9,16 @@ import { orgAdminMutation, orgQuery } from "./lib/customFunctions";
 import { createNotification } from "./notifications";
 
 /**
- * GitHub integration. One record per org; the webhook endpoint in http.ts
- * verifies each delivery against `webhookSecret` and routes pull_request
- * events into `handlePullRequest`, which links PRs to issues by identifier
- * (ENG-42 in the branch name, title or body) and moves issue statuses:
- * PR opened → in_review, PR merged → done.
+ * GitHub integration via a GitHub App.
+ *
+ * Connect flow: `beginInstall` mints a single-use nonce and sends the user
+ * to GitHub's install screen (where they pick repositories). GitHub
+ * redirects to `/github-setup` (http.ts) with the installation id + nonce,
+ * and `completeSetup` binds the installation to the org. From then on the
+ * app-level webhook (`GITHUB_WEBHOOK_SECRET`) delivers installation and
+ * pull_request events; PRs link to issues by identifier (ENG-42 in the
+ * branch name, title or body) and drive statuses: opened → in_review,
+ * merged → done.
  */
 
 async function getGithubIntegration(
@@ -29,52 +33,57 @@ async function getGithubIntegration(
 
 export const get = orgQuery({
   args: {},
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("integrations"),
-      orgId: v.id("organizations"),
-      enabled: v.boolean(),
-      connectedByName: v.string(),
-      connectedAt: v.number(),
-      /** Only revealed to org admins. */
-      webhookSecret: v.optional(v.string()),
-    })
-  ),
+  returns: v.object({
+    /** Whether GITHUB_APP_SLUG is set on the deployment. */
+    appConfigured: v.boolean(),
+    connection: v.union(
+      v.null(),
+      v.object({
+        enabled: v.boolean(),
+        connectedByName: v.string(),
+        connectedAt: v.number(),
+        repositories: v.array(v.string()),
+      })
+    ),
+  }),
   handler: async (ctx) => {
     const integration = await getGithubIntegration(ctx, ctx.org._id);
-    if (!integration) {
-      return null;
-    }
-    const connectedBy = await ctx.db.get(integration.connectedBy);
-    const isAdmin = ctx.membership.role === "admin";
+    const connected = integration?.installationId !== undefined;
+    const connectedBy = connected
+      ? await ctx.db.get(integration!.connectedBy)
+      : null;
     return {
-      _id: integration._id,
-      orgId: integration.orgId,
-      enabled: integration.enabled,
-      connectedByName: connectedBy?.name ?? "Unknown user",
-      connectedAt: integration._creationTime,
-      webhookSecret: isAdmin ? integration.webhookSecret : undefined,
+      appConfigured: !!process.env.GITHUB_APP_SLUG,
+      connection: connected
+        ? {
+            enabled: integration!.enabled,
+            connectedByName: connectedBy?.name ?? "Unknown user",
+            connectedAt: integration!._creationTime,
+            repositories: integration!.repositories ?? [],
+          }
+        : null,
     };
   },
 });
 
-export const connect = orgAdminMutation({
+/** Mint a nonce and return GitHub's install URL (repo picker) to redirect to. */
+export const beginInstall = orgAdminMutation({
   args: {},
-  returns: v.null(),
+  returns: v.string(),
   handler: async (ctx) => {
-    const existing = await getGithubIntegration(ctx, ctx.org._id);
-    if (existing) {
-      throw new Error("GitHub is already connected");
+    const slug = process.env.GITHUB_APP_SLUG;
+    if (!slug) {
+      throw new Error(
+        "GITHUB_APP_SLUG is not set on the Convex deployment"
+      );
     }
-    await ctx.db.insert("integrations", {
+    const nonce = crypto.randomUUID();
+    await ctx.db.insert("githubInstallStates", {
       orgId: ctx.org._id,
-      type: "github",
-      enabled: true,
-      webhookSecret: `ghs_${crypto.randomUUID().replaceAll("-", "")}`,
-      connectedBy: ctx.user._id,
+      userId: ctx.user._id,
+      nonce,
     });
-    return null;
+    return `https://github.com/apps/${slug}/installations/new?state=${nonce}`;
   },
 });
 
@@ -91,7 +100,7 @@ export const setEnabled = orgAdminMutation({
   },
 });
 
-/** Remove the integration. Linked PR records on issues are kept. */
+/** Remove the binding. Linked PR records on issues are kept. */
 export const disconnect = orgAdminMutation({
   args: {},
   returns: v.null(),
@@ -143,46 +152,113 @@ export const listByIssue = orgQuery({
   },
 });
 
-// ── Webhook internals ─────────────────────────────────────────────────────
+// ── Install callback + webhook internals ──────────────────────────────────
 
-export const getForWebhook = internalQuery({
-  args: { orgId: v.string() },
-  returns: v.union(
-    v.null(),
-    v.object({
-      orgId: v.id("organizations"),
-      enabled: v.boolean(),
-      webhookSecret: v.string(),
-    })
-  ),
+const NONCE_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Bind a finished GitHub App install to the org that started it. Returns
+ * the org slug for the post-install redirect, or null if the nonce is
+ * unknown/expired.
+ */
+export const completeSetup = internalMutation({
+  args: { nonce: v.string(), installationId: v.number() },
+  returns: v.union(v.null(), v.string()),
   handler: async (ctx, args) => {
-    const orgId = ctx.db.normalizeId("organizations", args.orgId);
-    if (!orgId) {
-      return null;
-    }
-    const integration = await ctx.db
-      .query("integrations")
-      .withIndex("by_org", (q) => q.eq("orgId", orgId))
+    const state = await ctx.db
+      .query("githubInstallStates")
+      .withIndex("by_nonce", (q) => q.eq("nonce", args.nonce))
       .unique();
-    if (!integration) {
+    if (!state) {
       return null;
     }
-    return {
-      orgId: integration.orgId,
-      enabled: integration.enabled,
-      webhookSecret: integration.webhookSecret,
-    };
+    await ctx.db.delete(state._id);
+    if (Date.now() - state._creationTime > NONCE_TTL_MS) {
+      return null;
+    }
+
+    const existing = await getGithubIntegration(ctx, state.orgId);
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        installationId: args.installationId,
+        connectedBy: state.userId,
+        enabled: true,
+        webhookSecret: undefined,
+      });
+    } else {
+      await ctx.db.insert("integrations", {
+        orgId: state.orgId,
+        type: "github",
+        enabled: true,
+        connectedBy: state.userId,
+        installationId: args.installationId,
+      });
+    }
+
+    const org = await ctx.db.get(state.orgId);
+    return org?.slug ?? null;
+  },
+});
+
+async function getByInstallation(
+  ctx: { db: QueryCtx["db"] },
+  installationId: number
+): Promise<Doc<"integrations"> | null> {
+  return await ctx.db
+    .query("integrations")
+    .withIndex("by_installation", (q) =>
+      q.eq("installationId", installationId)
+    )
+    .first();
+}
+
+/** installation / installation_repositories events: sync the repo list. */
+export const handleInstallationEvent = internalMutation({
+  args: {
+    installationId: v.number(),
+    action: v.string(),
+    /** Full repo list when GitHub sends one (install created). */
+    repositories: v.optional(v.array(v.string())),
+    repositoriesAdded: v.optional(v.array(v.string())),
+    repositoriesRemoved: v.optional(v.array(v.string())),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const integration = await getByInstallation(ctx, args.installationId);
+    if (!integration) {
+      return null; // install created before completeSetup ran; repos sync on later events
+    }
+
+    if (args.action === "deleted") {
+      // App uninstalled on GitHub: drop the binding.
+      await ctx.db.delete(integration._id);
+      return null;
+    }
+
+    const repos = new Set(
+      args.repositories ?? integration.repositories ?? []
+    );
+    for (const repo of args.repositoriesAdded ?? []) {
+      repos.add(repo);
+    }
+    for (const repo of args.repositoriesRemoved ?? []) {
+      repos.delete(repo);
+    }
+    await ctx.db.patch(integration._id, {
+      repositories: [...repos].sort(),
+    });
+    return null;
   },
 });
 
 /**
- * Process a verified pull_request event. Finds issue identifiers (ENG-42)
- * in the branch name / title / body, upserts PR links, and moves statuses:
- * open/reopened → in_review, merged → done.
+ * Process a pull_request event: upsert PR links on referenced issues and
+ * move statuses (opened → in_review, merged → done) with activity +
+ * notifications.
  */
 export const handlePullRequest = internalMutation({
   args: {
-    orgId: v.id("organizations"),
+    installationId: v.number(),
     merged: v.boolean(),
     closed: v.boolean(),
     repo: v.string(),
@@ -195,12 +271,17 @@ export const handlePullRequest = internalMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const integration = await ctx.db
-      .query("integrations")
-      .withIndex("by_org", (q) => q.eq("orgId", args.orgId))
-      .unique();
+    const integration = await getByInstallation(ctx, args.installationId);
     if (!integration || !integration.enabled) {
       return null;
+    }
+    const orgId = integration.orgId;
+
+    // Self-heal the repo list from real traffic.
+    if (args.repo && !(integration.repositories ?? []).includes(args.repo)) {
+      await ctx.db.patch(integration._id, {
+        repositories: [...(integration.repositories ?? []), args.repo].sort(),
+      });
     }
 
     // "ENG-42" → team key + number. Team keys are short and alphabetic.
@@ -215,7 +296,7 @@ export const handlePullRequest = internalMutation({
       const team = await ctx.db
         .query("teams")
         .withIndex("by_org_and_key", (q) =>
-          q.eq("orgId", args.orgId).eq("key", key)
+          q.eq("orgId", orgId).eq("key", key)
         )
         .unique();
       if (!team) {
@@ -236,7 +317,7 @@ export const handlePullRequest = internalMutation({
         .query("pullRequests")
         .withIndex("by_org_repo_number", (q) =>
           q
-            .eq("orgId", args.orgId)
+            .eq("orgId", orgId)
             .eq("repo", args.repo)
             .eq("number", args.number)
         )
@@ -246,7 +327,7 @@ export const handlePullRequest = internalMutation({
         await ctx.db.patch(existing._id, { title: args.title, state });
       } else {
         await ctx.db.insert("pullRequests", {
-          orgId: args.orgId,
+          orgId,
           issueId: issue._id,
           repo: args.repo,
           number: args.number,
@@ -276,7 +357,7 @@ export const handlePullRequest = internalMutation({
 
       await ctx.db.patch(issue._id, { status: nextStatus });
       await logActivity(ctx, {
-        orgId: args.orgId,
+        orgId,
         issueId: issue._id,
         actorId: integration.connectedBy,
         type: "status_changed",
@@ -291,7 +372,7 @@ export const handlePullRequest = internalMutation({
       );
       for (const userId of recipients) {
         await createNotification(ctx, {
-          orgId: args.orgId,
+          orgId,
           userId,
           actorId: integration.connectedBy,
           issueId: issue._id,

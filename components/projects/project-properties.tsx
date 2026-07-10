@@ -57,12 +57,26 @@ type ProjectPatch = {
   githubRepo?: string | null;
 };
 
+const NO_REPO = "no-repo";
+
 export function ProjectProperties({ project }: { project: Doc<"projects"> }) {
   const params = useParams<{ orgSlug: string }>();
   const router = useRouter();
   const members = useQuery(api.organizations.listMembers);
+  const integration = useQuery(api.integrations.get);
   const updateProject = useMutation(api.projects.update);
   const removeProject = useMutation(api.projects.remove);
+
+  // Repos granted to the GitHub App install; include the saved value even
+  // if access was since revoked so it stays visible/clearable.
+  const repos = [
+    ...new Set(
+      [
+        ...(integration?.connection?.repositories ?? []),
+        ...(project.githubRepo ? [project.githubRepo] : []),
+      ].sort()
+    ),
+  ];
 
   const update = (patch: ProjectPatch) => {
     updateProject({ projectId: project._id, ...patch }).catch(
@@ -171,25 +185,51 @@ export function ProjectProperties({ project }: { project: Doc<"projects"> }) {
       </PropertyRow>
 
       <PropertyRow label="GitHub repo">
-        <input
-          type="text"
-          key={project.githubRepo ?? ""}
-          defaultValue={project.githubRepo ?? ""}
-          placeholder="owner/repo"
-          onBlur={(e) => {
-            const value = e.target.value.trim();
-            if (value !== (project.githubRepo ?? "")) {
-              update({ githubRepo: value || null });
+        {repos.length > 0 ? (
+          <Select
+            value={project.githubRepo ?? NO_REPO}
+            onValueChange={(value) =>
+              update({ githubRepo: value === NO_REPO ? null : value })
             }
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.currentTarget.blur();
-            }
-          }}
-          aria-label="GitHub repo"
-          className="h-8 w-36 rounded-md px-2 text-right font-mono text-xs text-foreground outline-none transition-colors placeholder:font-sans placeholder:text-muted-foreground hover:bg-accent focus:bg-accent"
-        />
+          >
+            <SelectTrigger
+              size="sm"
+              className="w-36 gap-1.5 border-none font-mono text-xs shadow-none"
+            >
+              <SelectValue placeholder="No repo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NO_REPO}>
+                <span className="text-muted-foreground">No repo</span>
+              </SelectItem>
+              {repos.map((repo) => (
+                <SelectItem key={repo} value={repo} className="font-mono text-xs">
+                  {repo}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : (
+          <input
+            type="text"
+            key={project.githubRepo ?? ""}
+            defaultValue={project.githubRepo ?? ""}
+            placeholder="owner/repo"
+            onBlur={(e) => {
+              const value = e.target.value.trim();
+              if (value !== (project.githubRepo ?? "")) {
+                update({ githubRepo: value || null });
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.currentTarget.blur();
+              }
+            }}
+            aria-label="GitHub repo"
+            className="h-8 w-36 rounded-md px-2 text-right font-mono text-xs text-foreground outline-none transition-colors placeholder:font-sans placeholder:text-muted-foreground hover:bg-accent focus:bg-accent"
+          />
+        )}
       </PropertyRow>
       {project.githubRepo && project.githubRepoConnectedBy && (
         <p className="-mt-2 text-right text-[11px] text-muted-foreground">
