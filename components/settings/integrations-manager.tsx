@@ -61,23 +61,29 @@ function RepositoryList({ repositories }: { repositories: string[] }) {
           No repositories match “{filter}”.
         </p>
       ) : (
-        <div className="mt-2 grid max-h-48 grid-cols-1 gap-x-3 gap-y-0.5 overflow-y-auto sm:grid-cols-2">
-          {visible.map((repo) => {
-            const [owner, name] = repo.split("/");
-            return (
-              <div
-                key={repo}
-                className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs"
-                title={repo}
-              >
-                <GithubIcon className="size-3.5 shrink-0 text-muted-foreground" />
-                <span className="truncate">
-                  <span className="text-muted-foreground">{owner}/</span>
-                  <span className="font-medium">{name}</span>
-                </span>
-              </div>
-            );
-          })}
+        <div className="relative">
+          <div className="mt-2 grid max-h-48 grid-cols-1 gap-x-3 gap-y-0.5 overflow-y-auto pb-6 sm:grid-cols-2">
+            {visible.map((repo) => {
+              const [owner, name] = repo.split("/");
+              return (
+                <div
+                  key={repo}
+                  className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs"
+                  title={repo}
+                >
+                  <GithubIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="truncate">
+                    <span className="text-muted-foreground">{owner}/</span>
+                    <span className="font-medium">{name}</span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {/* Fade hint that the list scrolls. */}
+          {visible.length > 12 && (
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-linear-to-t from-background to-transparent" />
+          )}
         </div>
       )}
     </div>
