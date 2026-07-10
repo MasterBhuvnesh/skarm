@@ -12,6 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  inputDateToMs,
+  msToInputDate,
+} from "@/components/projects/dates";
+import {
   IssuePriority,
   IssueStatus,
   PRIORITIES,
@@ -43,6 +47,7 @@ type IssuePatch = {
   priority?: IssuePriority;
   assigneeId?: Id<"users"> | null;
   estimate?: number | null;
+  dueDate?: number | null;
 };
 
 export function IssueProperties({ issue }: { issue: Doc<"issues"> }) {
@@ -146,6 +151,18 @@ export function IssueProperties({ issue }: { issue: Doc<"issues"> }) {
             ))}
           </SelectContent>
         </Select>
+      </PropertyRow>
+
+      <PropertyRow label="Due date">
+        <input
+          type="date"
+          value={issue.dueDate ? msToInputDate(issue.dueDate) : ""}
+          onChange={(e) =>
+            update({ dueDate: inputDateToMs(e.target.value, "end") ?? null })
+          }
+          aria-label="Due date"
+          className="h-8 rounded-md px-2 text-xs text-foreground outline-none transition-colors hover:bg-accent [color-scheme:light] dark:[color-scheme:dark]"
+        />
       </PropertyRow>
     </div>
   );

@@ -22,6 +22,68 @@ import { Switch } from "@/components/ui/switch";
 import { formatRelativeTime } from "@/components/issue-detail/format";
 import { GithubIcon } from "@/components/shared/github-icon";
 
+function RepositoryList({ repositories }: { repositories: string[] }) {
+  const [filter, setFilter] = useState("");
+  const visible = filter
+    ? repositories.filter((repo) =>
+        repo.toLowerCase().includes(filter.toLowerCase())
+      )
+    : repositories;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-muted-foreground">
+          Repositories
+          {repositories.length > 0 && (
+            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 font-normal tabular-nums">
+              {repositories.length}
+            </span>
+          )}
+        </span>
+        {repositories.length > 8 && (
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Filter…"
+            aria-label="Filter repositories"
+            className="h-6 w-36 rounded-md border bg-transparent px-2 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
+          />
+        )}
+      </div>
+      {repositories.length === 0 ? (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Syncing from GitHub — the list fills in as events arrive.
+        </p>
+      ) : visible.length === 0 ? (
+        <p className="mt-2 text-xs text-muted-foreground">
+          No repositories match “{filter}”.
+        </p>
+      ) : (
+        <div className="mt-2 grid max-h-48 grid-cols-1 gap-x-3 gap-y-0.5 overflow-y-auto sm:grid-cols-2">
+          {visible.map((repo) => {
+            const [owner, name] = repo.split("/");
+            return (
+              <div
+                key={repo}
+                className="flex min-w-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs"
+                title={repo}
+              >
+                <GithubIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                <span className="truncate">
+                  <span className="text-muted-foreground">{owner}/</span>
+                  <span className="font-medium">{name}</span>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function IntegrationsManager() {
   const data = useQuery(api.integrations.get);
   const beginInstall = useMutation(api.integrations.beginInstall);
@@ -120,27 +182,7 @@ export function IntegrationsManager() {
           <>
             <Separator />
             <div className="flex flex-col gap-3 p-4">
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">
-                  Repositories
-                </span>
-                {connection.repositories.length === 0 ? (
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Syncing from GitHub — the list fills in as events arrive.
-                  </p>
-                ) : (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {connection.repositories.map((repo) => (
-                      <span
-                        key={repo}
-                        className="rounded-md border bg-muted/50 px-2 py-0.5 font-mono text-xs"
-                      >
-                        {repo}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <RepositoryList repositories={connection.repositories} />
               <p className="text-xs text-muted-foreground">
                 Reference issues as{" "}
                 <code className="rounded bg-muted px-1">ENG-42</code> in a

@@ -106,6 +106,7 @@ export async function scheduleGithubIssueSync(
 export async function scheduleGithubAttachmentComment(
   ctx: MutationCtx,
   issueId: Id<"issues">,
+  attachmentId: Id<"attachments">,
   fileName: string,
   storageId: Id<"_storage">
 ): Promise<void> {
@@ -123,9 +124,69 @@ export async function scheduleGithubAttachmentComment(
   await ctx.scheduler.runAfter(
     0,
     internal.github.client.pushAttachmentComment,
-    { issueId, fileName, url }
+    { issueId, attachmentId, fileName, url }
   );
 }
+
+/** Delete the mirrored GitHub comments when an attachment is removed. */
+export async function scheduleGithubAttachmentRemoval(
+  ctx: MutationCtx,
+  issueId: Id<"issues">,
+  attachmentId: Id<"attachments">
+): Promise<void> {
+  const mappings = await ctx.db
+    .query("githubAttachmentComments")
+    .withIndex("by_attachment", (q) => q.eq("attachmentId", attachmentId))
+    .collect();
+  if (mappings.length === 0) {
+    return;
+  }
+  for (const mapping of mappings) {
+    await ctx.db.delete(mapping._id);
+  }
+  await ctx.scheduler.runAfter(
+    0,
+    internal.github.client.deleteAttachmentComments,
+    {
+      issueId,
+      comments: mappings.map((m) => ({ repo: m.repo, commentId: m.commentId })),
+    }
+  );
+}
+
+export const recordAttachmentComment = internalMutation({
+  args: {
+    orgId: v.id("organizations"),
+    issueId: v.id("issues"),
+    attachmentId: v.id("attachments"),
+    repo: v.string(),
+    commentId: v.number(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // The attachment may already be gone if it was removed while the push
+    // action was in flight — delete the orphan comment right away.
+    const attachment = await ctx.db.get(args.attachmentId);
+    if (!attachment) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.github.client.deleteAttachmentComments,
+        {
+          issueId: args.issueId,
+          comments: [{ repo: args.repo, commentId: args.commentId }],
+        }
+      );
+      return null;
+    }
+    await ctx.db.insert("githubAttachmentComments", {
+      orgId: args.orgId,
+      attachmentId: args.attachmentId,
+      repo: args.repo,
+      commentId: args.commentId,
+    });
+    return null;
+  },
+});
 
 export const recordGithubIssue = internalMutation({
   args: {

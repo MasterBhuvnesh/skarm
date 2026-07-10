@@ -1,5 +1,8 @@
 import { v } from "convex/values";
-import { scheduleGithubAttachmentComment } from "./github/sync";
+import {
+  scheduleGithubAttachmentComment,
+  scheduleGithubAttachmentRemoval,
+} from "./github/sync";
 import { getOrgIssue } from "./issues";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
@@ -70,6 +73,7 @@ export const create = orgMutation({
     await scheduleGithubAttachmentComment(
       ctx,
       issue._id,
+      attachmentId,
       fileName,
       args.storageId
     );
@@ -123,6 +127,13 @@ export const remove = orgMutation({
         "Only the uploader or an admin can delete an attachment"
       );
     }
+
+    // Delete the mirrored GitHub comment(s) before the mapping rows go away.
+    await scheduleGithubAttachmentRemoval(
+      ctx,
+      attachment.issueId,
+      attachment._id
+    );
 
     await ctx.storage.delete(attachment.storageId);
     await ctx.db.delete(attachment._id);

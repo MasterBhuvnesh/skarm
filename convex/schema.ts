@@ -219,6 +219,16 @@ export default defineSchema({
     .index("by_issue", ["issueId"])
     .index("by_org_repo_number", ["orgId", "repo", "number"]),
 
+  /** GitHub comments mirroring Cohere attachments, so removal can delete them. */
+  githubAttachmentComments: defineTable({
+    orgId: v.id("organizations"),
+    attachmentId: v.id("attachments"),
+    /** "owner/name" */
+    repo: v.string(),
+    /** GitHub comment id */
+    commentId: v.number(),
+  }).index("by_attachment", ["attachmentId"]),
+
   /** Cohere issue ↔ GitHub issue sync links (created by the sync layer). */
   githubIssues: defineTable({
     orgId: v.id("organizations"),

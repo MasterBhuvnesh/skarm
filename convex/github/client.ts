@@ -48,7 +48,7 @@ function appJwt(): string {
 
 async function githubFetch<T>(
   token: string,
-  method: "GET" | "POST" | "PATCH",
+  method: "GET" | "POST" | "PATCH" | "DELETE",
   path: string,
   body?: unknown
 ): Promise<T> {
@@ -63,13 +63,14 @@ async function githubFetch<T>(
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  const text = await response.text();
   if (!response.ok) {
-    const text = await response.text();
     throw new Error(
       `GitHub ${method} ${path} failed (${response.status}): ${text.slice(0, 200)}`
     );
   }
-  return (await response.json()) as T;
+  // DELETE and some PUTs return 204 with an empty body.
+  return (text ? JSON.parse(text) : undefined) as T;
 }
 
 // ponytail: a fresh installation token per call (2 requests/op, tokens are
@@ -219,6 +220,7 @@ export const pushIssueUpdate = internalAction({
 export const pushAttachmentComment = internalAction({
   args: {
     issueId: v.id("issues"),
+    attachmentId: v.id("attachments"),
     fileName: v.string(),
     url: v.string(),
   },
@@ -233,7 +235,7 @@ export const pushAttachmentComment = internalAction({
     try {
       const token = await installationToken(info.installationId);
       for (const link of info.links) {
-        await githubFetch(
+        const comment = await githubFetch<{ id: number }>(
           token,
           "POST",
           `/repos/${link.repo}/issues/${link.number}/comments`,
@@ -241,6 +243,55 @@ export const pushAttachmentComment = internalAction({
             body: `📎 Attachment added in Cohere: [${args.fileName}](${args.url})`,
           }
         );
+        // Remember the comment so removing the attachment can delete it.
+        await ctx.runMutation(internal.github.sync.recordAttachmentComment, {
+          orgId: info.orgId,
+          issueId: args.issueId,
+          attachmentId: args.attachmentId,
+          repo: link.repo,
+          commentId: comment.id,
+        });
+      }
+    } catch (error) {
+      await ctx.runMutation(internal.github.sync.recordSyncFailure, {
+        orgId: info.orgId,
+        issueId: args.issueId,
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+    return null;
+  },
+});
+
+/** Delete the GitHub comments that mirrored a removed Cohere attachment. */
+export const deleteAttachmentComments = internalAction({
+  args: {
+    issueId: v.id("issues"),
+    comments: v.array(v.object({ repo: v.string(), commentId: v.number() })),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const info = await ctx.runQuery(internal.github.sync.getIssueForSync, {
+      issueId: args.issueId,
+    });
+    if (!info) {
+      return null;
+    }
+    try {
+      const token = await installationToken(info.installationId);
+      for (const comment of args.comments) {
+        try {
+          await githubFetch(
+            token,
+            "DELETE",
+            `/repos/${comment.repo}/issues/comments/${comment.commentId}`
+          );
+        } catch (error) {
+          // Already deleted on GitHub is fine; anything else surfaces.
+          if (!(error instanceof Error && error.message.includes("(404)"))) {
+            throw error;
+          }
+        }
       }
     } catch (error) {
       await ctx.runMutation(internal.github.sync.recordSyncFailure, {
