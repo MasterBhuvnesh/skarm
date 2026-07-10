@@ -30,6 +30,7 @@ import type * as lib_activity from "../lib/activity.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_customFunctions from "../lib/customFunctions.js";
 import type * as lib_limits from "../lib/limits.js";
+import type * as notifications from "../notifications.js";
 import type * as organizations from "../organizations.js";
 import type * as presenceFns from "../presenceFns.js";
 import type * as projects from "../projects.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   "lib/auth": typeof lib_auth;
   "lib/customFunctions": typeof lib_customFunctions;
   "lib/limits": typeof lib_limits;
+  notifications: typeof notifications;
   organizations: typeof organizations;
   presenceFns: typeof presenceFns;
   projects: typeof projects;

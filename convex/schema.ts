@@ -56,6 +56,12 @@ export const templateCadenceValidator = v.union(
   v.literal("monthly")
 );
 
+export const notificationTypeValidator = v.union(
+  v.literal("mention"),
+  v.literal("assigned"),
+  v.literal("status_changed")
+);
+
 export default defineSchema({
   // ── Synced from Clerk via webhooks ─────────────────────────────────────
   users: defineTable({
@@ -174,6 +180,22 @@ export default defineSchema({
     /** User ids @mentioned in the body */
     mentions: v.optional(v.array(v.id("users"))),
   }).index("by_issue", ["issueId"]),
+
+  notifications: defineTable({
+    orgId: v.id("organizations"),
+    /** Recipient */
+    userId: v.id("users"),
+    actorId: v.id("users"),
+    issueId: v.id("issues"),
+    type: notificationTypeValidator,
+    /** New status value, for status_changed */
+    newValue: v.optional(v.string()),
+    /** Source comment, for mentions */
+    commentId: v.optional(v.id("comments")),
+    read: v.boolean(),
+  })
+    .index("by_user", ["orgId", "userId"])
+    .index("by_user_read", ["orgId", "userId", "read"]),
 
   activity: defineTable({
     orgId: v.id("organizations"),

@@ -4,6 +4,7 @@ import { MutationCtx, QueryCtx } from "./_generated/server";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
 import { assertCanCreateIssue } from "./lib/limits";
+import { createNotification } from "./notifications";
 import { issuePriorityValidator, issueStatusValidator } from "./schema";
 
 export const issueShape = {
@@ -277,6 +278,35 @@ export const update = orgMutation({
         oldValue: change.oldValue,
         newValue: change.newValue,
       });
+    }
+
+    // In-app notifications (createNotification skips the actor themselves).
+    const newAssignee = args.assigneeId ?? undefined;
+    if (newAssignee && newAssignee !== issue.assigneeId) {
+      await createNotification(ctx, {
+        orgId: ctx.org._id,
+        userId: newAssignee,
+        actorId: ctx.user._id,
+        issueId: issue._id,
+        type: "assigned",
+      });
+    }
+    if (updates.status) {
+      const recipients = new Set(
+        [issue.creatorId, newAssignee ?? issue.assigneeId].filter(
+          (id): id is Id<"users"> => id !== undefined
+        )
+      );
+      for (const userId of recipients) {
+        await createNotification(ctx, {
+          orgId: ctx.org._id,
+          userId,
+          actorId: ctx.user._id,
+          issueId: issue._id,
+          type: "status_changed",
+          newValue: updates.status,
+        });
+      }
     }
     return null;
   },

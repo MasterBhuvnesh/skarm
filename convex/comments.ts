@@ -4,6 +4,7 @@ import { QueryCtx } from "./_generated/server";
 import { getOrgIssue } from "./issues";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
+import { createNotification } from "./notifications";
 
 /** Comment enriched with author + mention display info for the feed. */
 const enrichedCommentValidator = v.object({
@@ -137,6 +138,17 @@ export const create = orgMutation({
       actorId: ctx.user._id,
       type: "commented",
     });
+
+    for (const userId of mentions) {
+      await createNotification(ctx, {
+        orgId: ctx.org._id,
+        userId,
+        actorId: ctx.user._id,
+        issueId: issue._id,
+        type: "mention",
+        commentId,
+      });
+    }
 
     return commentId;
   },

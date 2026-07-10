@@ -3,6 +3,7 @@
 import { OrganizationSwitcher, UserButton, useOrganization } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import {
+  Bell,
   Bot,
   Box,
   ChevronDown,
@@ -75,6 +76,7 @@ export function AppSidebar() {
   const params = useParams<{ orgSlug: string }>();
   const { organization } = useOrganization();
   const teams = useQuery(api.teams.list);
+  const unreadCount = useQuery(api.notifications.unreadCount) ?? 0;
   const { openCreateIssue, openPalette } = useCommands();
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -313,6 +315,29 @@ export function AppSidebar() {
       >
         <UserButton />
         <div className={cn("flex gap-1", collapsed && "flex-col items-center")}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className="relative size-7"
+                aria-label={
+                  unreadCount > 0 ? `Inbox (${unreadCount} unread)` : "Inbox"
+                }
+              >
+                <Link href={`${base}/inbox`}>
+                  <Bell className="size-4" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-primary px-0.5 text-[9px] font-semibold text-primary-foreground">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">Inbox</TooltipContent>
+          </Tooltip>
           <Button
             asChild
             variant="ghost"
