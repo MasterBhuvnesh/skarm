@@ -196,3 +196,41 @@ button, [role="button"], [role="menuitem"], [role="tab"], kbd, [data-slot="sideb
 .cl-organizationSwitcherTriggerIcon {
   flex-shrink: 0 !important;
 }
+
+/* Shared-issue "Export PDF": the page prints in whatever theme is active, so
+   force a clean black-on-white document and hide interactive chrome
+   (Streamdown injects copy/download/fullscreen buttons on code blocks). */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  .print-doc,
+  .print-doc * {
+    color: #000 !important;
+    border-color: #d4d4d4 !important;
+  }
+  .print-doc button {
+    display: none !important;
+  }
+  .print-doc pre,
+  .print-doc code {
+    background: #f4f4f4 !important;
+  }
+  .print-doc .bg-border {
+    background: #d4d4d4 !important;
+  }
+  .print-doc table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+  }
+  .print-doc th,
+  .print-doc td {
+    border: 1px solid #d4d4d4 !important;
+    padding: 6px 10px;
+    text-align: left;
+  }
+  .print-doc th {
+    background: #f4f4f4 !important;
+  }
+}

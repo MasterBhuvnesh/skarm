@@ -23,7 +23,7 @@ type SharedIssue = NonNullable<
  */
 export function PublicIssueView({ issue }: { issue: SharedIssue }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-6 py-10 print:max-w-none print:py-0">
+    <div className="print-doc mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-6 py-10 print:max-w-none print:py-0">
       <header className="flex items-center justify-between gap-4 print:hidden">
         <span className="text-sm text-muted-foreground">
           Shared from <span className="font-medium">{issue.orgName}</span> ·{" "}
