@@ -1,10 +1,40 @@
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
-import { orgQuery } from "./lib/customFunctions";
+import { QueryCtx } from "./_generated/server";
+import { orgMutation, orgQuery } from "./lib/customFunctions";
 import {
   issuePriorityValidator,
   issueStatusValidator,
 } from "./schema";
+
+const positionValidator = v.object({
+  issueId: v.id("issues"),
+  x: v.number(),
+  y: v.number(),
+});
+
+/** Resolve and authorize a scope, returning its layout storage key. */
+async function scopeKeyFor(
+  ctx: { db: QueryCtx["db"] },
+  orgId: Id<"organizations">,
+  args: { projectId?: Id<"projects">; cycleId?: Id<"cycles"> }
+): Promise<string | null> {
+  if (args.projectId) {
+    const project = await ctx.db.get(args.projectId);
+    if (!project || project.orgId !== orgId) {
+      throw new Error("Project not found");
+    }
+    return `project:${args.projectId}`;
+  }
+  if (args.cycleId) {
+    const cycle = await ctx.db.get(args.cycleId);
+    if (!cycle || cycle.orgId !== orgId) {
+      throw new Error("Cycle not found");
+    }
+    return `cycle:${args.cycleId}`;
+  }
+  return null;
+}
 
 /**
  * Dependency-graph data: the issues of one project or cycle as nodes, and
@@ -42,29 +72,25 @@ export const forScope = orgQuery({
         ),
       })
     ),
+    /** Saved layout for this scope (empty when never arranged). */
+    positions: v.array(positionValidator),
   }),
   handler: async (ctx, args) => {
+    const scopeKey = await scopeKeyFor(ctx, ctx.org._id, args);
+    if (!scopeKey) {
+      return { nodes: [], edges: [], positions: [] };
+    }
     let issues: Doc<"issues">[] = [];
     if (args.projectId) {
-      const project = await ctx.db.get(args.projectId);
-      if (!project || project.orgId !== ctx.org._id) {
-        throw new Error("Project not found");
-      }
       issues = await ctx.db
         .query("issues")
         .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
         .collect();
     } else if (args.cycleId) {
-      const cycle = await ctx.db.get(args.cycleId);
-      if (!cycle || cycle.orgId !== ctx.org._id) {
-        throw new Error("Cycle not found");
-      }
       issues = await ctx.db
         .query("issues")
         .withIndex("by_cycle", (q) => q.eq("cycleId", args.cycleId))
         .collect();
-    } else {
-      return { nodes: [], edges: [] };
     }
     issues = issues.filter((issue) => issue.orgId === ctx.org._id);
     const inScope = new Set<Id<"issues">>(issues.map((issue) => issue._id));
@@ -117,6 +143,45 @@ export const forScope = orgQuery({
       }
     }
 
-    return { nodes, edges };
+    const layout = await ctx.db
+      .query("graphLayouts")
+      .withIndex("by_org_scope", (q) =>
+        q.eq("orgId", ctx.org._id).eq("scopeKey", scopeKey)
+      )
+      .unique();
+
+    return { nodes, edges, positions: layout?.positions ?? [] };
+  },
+});
+
+/** Persist the arrangement for a scope, replacing any previous layout. */
+export const savePositions = orgMutation({
+  args: {
+    projectId: v.optional(v.id("projects")),
+    cycleId: v.optional(v.id("cycles")),
+    positions: v.array(positionValidator),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const scopeKey = await scopeKeyFor(ctx, ctx.org._id, args);
+    if (!scopeKey) {
+      throw new Error("Pick a project or cycle first");
+    }
+    const existing = await ctx.db
+      .query("graphLayouts")
+      .withIndex("by_org_scope", (q) =>
+        q.eq("orgId", ctx.org._id).eq("scopeKey", scopeKey)
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { positions: args.positions });
+    } else {
+      await ctx.db.insert("graphLayouts", {
+        orgId: ctx.org._id,
+        scopeKey,
+        positions: args.positions,
+      });
+    }
+    return null;
   },
 });

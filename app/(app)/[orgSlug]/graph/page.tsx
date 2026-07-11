@@ -197,6 +197,7 @@ function GraphInner() {
   const createRelation = useMutation(api.issueRelations.create);
   const removeRelation = useMutation(api.issueRelations.remove);
   const updateIssue = useMutation(api.issues.update);
+  const savePositions = useMutation(api.graph.savePositions);
 
   const [nodes, setNodes, onNodesChange] = useNodesState<IssueFlowNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -213,7 +214,14 @@ function GraphInner() {
       return;
     }
     setNodes((previous) => {
-      const keep = new Map(previous.map((n) => [n.id, n.position]));
+      // Saved layout first, then whatever this session already placed.
+      const keep = new Map<string, { x: number; y: number }>();
+      for (const saved of data.positions) {
+        keep.set(saved.issueId, { x: saved.x, y: saved.y });
+      }
+      for (const node of previous) {
+        keep.set(node.id, node.position);
+      }
       for (const [id, position] of droppedPositions.current) {
         keep.set(id, position);
       }
@@ -221,6 +229,21 @@ function GraphInner() {
     });
     setEdges(data.edges.map(toFlowEdge));
   }, [data, setNodes, setEdges]);
+
+  /** Persist the given arrangement for the current scope (fire and forget). */
+  const persist = (arrangement: IssueFlowNode[]) => {
+    if (!scopeArgs) {
+      return;
+    }
+    savePositions({
+      ...scopeArgs,
+      positions: arrangement.map((node) => ({
+        issueId: node.id as Id<"issues">,
+        x: node.position.x,
+        y: node.position.y,
+      })),
+    }).catch((error: unknown) => console.error("Layout save failed", error));
+  };
 
   const onError = (error: unknown) => {
     toast.error(error instanceof Error ? error.message : "Something went wrong");
@@ -232,7 +255,9 @@ function GraphInner() {
       return;
     }
     droppedPositions.current.clear();
-    setNodes(layoutNodes(data, new Map()));
+    const arranged = layoutNodes(data, new Map());
+    setNodes(arranged);
+    persist(arranged);
     window.requestAnimationFrame(() => {
       void fitView({ padding: 0.2, duration: 300 });
     });
@@ -270,13 +295,26 @@ function GraphInner() {
       toast.error("Pick a project or cycle first");
       return;
     }
-    droppedPositions.current.set(
-      issueId,
-      screenToFlowPosition({ x: event.clientX, y: event.clientY })
-    );
+    const position = screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    droppedPositions.current.set(issueId, position);
     updateIssue({ issueId: issueId as Id<"issues">, ...scopeArgs }).catch(
       onError
     );
+    setNodes((current) => {
+      persist([
+        ...current,
+        {
+          id: issueId,
+          type: "issue",
+          position,
+          data: {} as IssueFlowNode["data"],
+        } as IssueFlowNode,
+      ]);
+      return current;
+    });
   };
 
   // ── Search panel ──
@@ -325,6 +363,12 @@ function GraphInner() {
               onEdgesChange={onEdgesChange}
               onConnect={(connection) => setPending(connection)}
               onEdgeClick={(_, edge) => setSelectedEdge(edge)}
+              onNodeDragStop={() =>
+                setNodes((current) => {
+                  persist(current);
+                  return current;
+                })
+              }
               colorMode={resolvedTheme === "dark" ? "dark" : "light"}
               deleteKeyCode={null}
               fitView

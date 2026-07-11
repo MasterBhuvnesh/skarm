@@ -229,6 +229,16 @@ export default defineSchema({
     commentId: v.number(),
   }).index("by_attachment", ["attachmentId"]),
 
+  /** Saved node positions for the dependency graph, one doc per scope. */
+  graphLayouts: defineTable({
+    orgId: v.id("organizations"),
+    /** "project:<id>" or "cycle:<id>" */
+    scopeKey: v.string(),
+    positions: v.array(
+      v.object({ issueId: v.id("issues"), x: v.number(), y: v.number() })
+    ),
+  }).index("by_org_scope", ["orgId", "scopeKey"]),
+
   /** Public read-only share links for individual issues. */
   issueShares: defineTable({
     orgId: v.id("organizations"),
