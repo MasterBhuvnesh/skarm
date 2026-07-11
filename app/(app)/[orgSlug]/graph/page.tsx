@@ -4,6 +4,7 @@ import {
   Background,
   BackgroundVariant,
   Controls,
+  Panel,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
@@ -15,7 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
-import { Loader2, Search, Waypoints } from "lucide-react";
+import { Loader2, Search, Sparkles, Waypoints } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DragEvent, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -177,7 +178,7 @@ export default function GraphPage() {
 
 function GraphInner() {
   const { resolvedTheme } = useTheme();
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const projects = useQuery(api.projects.list);
   const cycles = useQuery(api.cycles.listWithProgress);
@@ -223,6 +224,18 @@ function GraphInner() {
 
   const onError = (error: unknown) => {
     toast.error(error instanceof Error ? error.message : "Something went wrong");
+  };
+
+  /** Discard manual positions and re-run the blocking-depth layout. */
+  const autoArrange = () => {
+    if (!data) {
+      return;
+    }
+    droppedPositions.current.clear();
+    setNodes(layoutNodes(data, new Map()));
+    window.requestAnimationFrame(() => {
+      void fitView({ padding: 0.2, duration: 300 });
+    });
   };
 
   const chooseRelation = (type: RelationType) => {
@@ -319,6 +332,17 @@ function GraphInner() {
             >
               <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
               <Controls showInteractive={false} />
+              <Panel position="top-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-card shadow-sm"
+                  onClick={autoArrange}
+                >
+                  <Sparkles className="size-3.5" />
+                  Auto-arrange
+                </Button>
+              </Panel>
             </ReactFlow>
           )}
           {scopeArgs !== null && data !== undefined && data.nodes.length === 0 && (
