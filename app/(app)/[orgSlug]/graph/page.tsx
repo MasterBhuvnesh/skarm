@@ -376,24 +376,29 @@ function GraphInner() {
           <div className="flex flex-col gap-1.5">
             {(
               [
-                ["blocks", "Blocks", "The source issue blocks the target"],
-                ["blocked_by", "Blocked by", "The source is blocked by the target"],
-                ["related", "Related", "Loosely connected"],
-                ["duplicate_of", "Duplicate of", "Source duplicates the target"],
+                ["blocks", "Blocks", "This issue blocks the other one", EDGE_COLORS.blocks],
+                ["blocked_by", "Blocked by", "This issue is blocked by the other one", EDGE_COLORS.blocks],
+                ["related", "Related", "Loosely connected", EDGE_COLORS.related],
+                ["duplicate_of", "Duplicate of", "This issue duplicates the other one", EDGE_COLORS.duplicate_of],
               ] as const
-            ).map(([type, label, hint]) => (
-              <Button
+            ).map(([type, label, hint, color]) => (
+              <button
                 key={type}
-                variant="outline"
-                size="sm"
-                className="justify-start"
+                type="button"
                 onClick={() => chooseRelation(type)}
+                className="flex flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent"
               >
-                <span className="font-medium">{label}</span>
-                <span className="ml-auto text-xs text-muted-foreground">
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  <span
+                    className="size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: color }}
+                  />
+                  {label}
+                </span>
+                <span className="pl-4 text-xs text-muted-foreground">
                   {hint}
                 </span>
-              </Button>
+              </button>
             ))}
           </div>
         </DialogContent>
