@@ -24,6 +24,7 @@ import type * as crons from "../crons.js";
 import type * as cycles from "../cycles.js";
 import type * as github_client from "../github/client.js";
 import type * as github_sync from "../github/sync.js";
+import type * as graph from "../graph.js";
 import type * as http from "../http.js";
 import type * as integrations from "../integrations.js";
 import type * as issueRelations from "../issueRelations.js";
@@ -69,6 +70,7 @@ declare const fullApi: ApiFromModules<{
   cycles: typeof cycles;
   "github/client": typeof github_client;
   "github/sync": typeof github_sync;
+  graph: typeof graph;
   http: typeof http;
   integrations: typeof integrations;
   issueRelations: typeof issueRelations;

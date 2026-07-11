@@ -15,6 +15,7 @@ import {
   Search,
   Settings,
   SquarePen,
+  Waypoints,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
@@ -237,6 +238,13 @@ export function AppSidebar() {
             icon={<RefreshCcw className="size-4" />}
           >
             Cycles
+          </NavLink>
+          <NavLink
+            href={`${base}/graph`}
+            collapsed={collapsed}
+            icon={<Waypoints className="size-4" />}
+          >
+            Graph
           </NavLink>
           <NavLink href={`${base}/ai`} collapsed={collapsed} icon={<Bot className="size-4" />}>
             AI Agent
