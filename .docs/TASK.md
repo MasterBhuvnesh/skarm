@@ -24,3 +24,19 @@
 - [ ] Per-seat metering: track active seats and surface usage on the billing page
 - [ ] Add-on features: sell the AI agent as a standalone add-on with Clerk features
 - [ ] Trials: time-boxed Pro trials for new organizations
+
+### NEXT DIRECTIONS
+
+Extensions of what's already built:
+
+- [ ] Automations builder: node-canvas "when X → if Y → do Z" flows composed by users (React Flow is installed; triggers/actions exist as primitives)
+- [ ] Two-way GitHub sync: closing/renaming/commenting on GitHub reflects back into Cohere via issues + issue_comment webhook events
+- [ ] Dependency graph upgrades: critical-path highlighting, circular-dependency warnings, filter by assignee
+- [ ] Email notifications: daily digest / instant mention emails via the Convex Resend component
+- [ ] Graph filter and grouping by team or assignee
+
+Boring but valuable (do before pushing to production):
+
+- [ ] CI: GitHub Actions running tsc, lint, and build on push/PR
+- [ ] Convex tests (convex-test) for plan limits, authz checks, webhook handlers, relations normalization
+- [ ] Mobile responsiveness pass on board and issue detail
