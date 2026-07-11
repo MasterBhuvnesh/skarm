@@ -7,6 +7,7 @@ import {
   issuePriorityValidator,
   issueRelationTypeValidator,
 } from "../schema";
+import { tryAuthorizeAi } from "./authorize";
 import {
   aiMessageKey,
   aiRateLimiter,
@@ -201,21 +202,11 @@ export const draftIssue = action({
     if (!idea) {
       return { ok: false as const, error: "Describe the idea first." };
     }
-    // Plan-gate rejections are expected (e.g. an org downgraded mid-session
-    // while the dialog still shows the AI strip) — surface them as a normal
-    // failure result so the client toasts instead of logging a server error.
-    let auth;
-    try {
-      auth = await ctx.runQuery(internal.agent.data.authorizeAi, {});
-    } catch (error) {
-      return {
-        ok: false as const,
-        error:
-          error instanceof Error
-            ? error.message.replace(/^Uncaught Error:\s*/, "")
-            : "The AI agent is unavailable.",
-      };
+    const authResult = await tryAuthorizeAi(ctx);
+    if (!authResult.ok) {
+      return authResult;
     }
+    const auth = authResult.auth;
     const context = await ctx.runQuery(internal.agent.draft.draftContext, {
       orgId: auth.orgId,
       teamId: args.teamId,

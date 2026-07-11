@@ -4,6 +4,7 @@ import { internal } from "../_generated/api";
 import { Id } from "../_generated/dataModel";
 import { action } from "../_generated/server";
 import { issuePriorityValidator } from "../schema";
+import { tryAuthorizeAi } from "./authorize";
 import { issueSummaryValidator } from "./data";
 import { embedText } from "./embeddings";
 import {
@@ -57,7 +58,11 @@ export const findDuplicates = action({
     })
   ),
   handler: async (ctx, args): Promise<DuplicatesResult> => {
-    const auth = await ctx.runQuery(internal.agent.data.authorizeAi, {});
+    const authResult = await tryAuthorizeAi(ctx);
+    if (!authResult.ok) {
+      return authResult;
+    }
+    const auth = authResult.auth;
     const issue = await ctx.runQuery(internal.agent.data.issueTriageContext, {
       orgId: auth.orgId,
       issueId: args.issueId,
@@ -129,9 +134,12 @@ export const suggestTriage = action({
     })
   ),
   handler: async (ctx, args): Promise<TriageSuggestionResult> => {
-    const auth = await ctx.runQuery(internal.agent.data.authorizeAi, {});
+    const authResult = await tryAuthorizeAi(ctx);
+    if (!authResult.ok) {
+      return authResult;
+    }
     const issue = await ctx.runQuery(internal.agent.data.issueTriageContext, {
-      orgId: auth.orgId,
+      orgId: authResult.auth.orgId,
       issueId: args.issueId,
     });
     if (!isAiConfigured()) {
