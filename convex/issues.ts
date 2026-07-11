@@ -365,8 +365,17 @@ export const update = orgMutation({
     if (args.projectId !== undefined) {
       updates.projectId = args.projectId ?? undefined;
     }
-    if (args.cycleId !== undefined) {
+    if (
+      args.cycleId !== undefined &&
+      (args.cycleId ?? undefined) !== issue.cycleId
+    ) {
       updates.cycleId = args.cycleId ?? undefined;
+      // Logged so cycle analytics can reconstruct scope changes over time.
+      changes.push({
+        field: "cycle",
+        oldValue: issue.cycleId,
+        newValue: args.cycleId ?? undefined,
+      });
     }
     if (args.estimate !== undefined) {
       updates.estimate = args.estimate ?? undefined;

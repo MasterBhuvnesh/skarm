@@ -294,3 +294,180 @@ export const remove = orgMutation({
     return null;
   },
 });
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Issues without an estimate count as 1 point everywhere below. */
+function issuePoints(issue: { estimate?: number }): number {
+  return issue.estimate ?? 1;
+}
+
+/**
+ * Burndown, velocity, and scope-change analytics for one cycle.
+ *
+ * Entry/completion times are reconstructed from the activity log
+ * (`cycle_changed` values are cycle ids, logged by issues.update; data
+ * predating that logging falls back to issue creation time), so charts are
+ * best-effort for cycles planned before analytics shipped.
+ */
+export const analytics = orgQuery({
+  args: { cycleId: v.id("cycles") },
+  returns: v.object({
+    days: v.array(v.object({ date: v.number(), remaining: v.number() })),
+    startScope: v.number(),
+    addedPoints: v.number(),
+    removedPoints: v.number(),
+    completedPoints: v.number(),
+    totalPoints: v.number(),
+    velocity: v.array(
+      v.object({
+        label: v.string(),
+        points: v.number(),
+        current: v.boolean(),
+      })
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const cycle = await getOrgCycle(ctx, ctx.org._id, args.cycleId);
+    const now = Date.now();
+
+    const inCycle = (
+      await ctx.db
+        .query("issues")
+        .withIndex("by_cycle", (q) => q.eq("cycleId", cycle._id))
+        .collect()
+    ).filter((issue) => issue.orgId === ctx.org._id);
+
+    // Reconstruct when each issue entered the cycle and when it finished.
+    type Lifecycle = { entered: number; completed: number | null; pts: number };
+    const lifecycles: Lifecycle[] = [];
+    let completedPoints = 0;
+    for (const issue of inCycle) {
+      const acts = await ctx.db
+        .query("activity")
+        .withIndex("by_issue", (q) => q.eq("issueId", issue._id))
+        .collect();
+      const entries = acts.filter(
+        (a) => a.field === "cycle" && a.newValue === cycle._id
+      );
+      const entered =
+        entries.length > 0
+          ? Math.max(...entries.map((a) => a._creationTime))
+          : issue._creationTime;
+      let completed: number | null = null;
+      if (issue.status === "done" || issue.status === "canceled") {
+        const transitions = acts.filter(
+          (a) => a.type === "status_changed" && a.newValue === issue.status
+        );
+        completed =
+          transitions.length > 0
+            ? Math.max(...transitions.map((a) => a._creationTime))
+            : issue._creationTime;
+        if (issue.status === "done") {
+          completedPoints += issuePoints(issue);
+        }
+      }
+      lifecycles.push({ entered, completed, pts: issuePoints(issue) });
+    }
+
+    // Scope removed: issues whose cycle_changed left this cycle and that
+    // never came back. ponytail: org-wide activity scan capped at the 2000
+    // newest entries — add an activity-by-field index if orgs outgrow this.
+    const orgActs = await ctx.db
+      .query("activity")
+      .withIndex("by_org", (q) => q.eq("orgId", ctx.org._id))
+      .order("desc")
+      .take(2000);
+    const stillIn = new Set<string>(inCycle.map((issue) => issue._id));
+    const removedAt = new Map<string, number>();
+    for (const act of orgActs) {
+      if (
+        act.field === "cycle" &&
+        act.oldValue === cycle._id &&
+        !stillIn.has(act.issueId) &&
+        !removedAt.has(act.issueId)
+      ) {
+        removedAt.set(act.issueId, act._creationTime);
+      }
+    }
+    let removedPoints = 0;
+    const removals: { time: number; pts: number }[] = [];
+    for (const [issueId, time] of removedAt) {
+      const issue = await ctx.db.get(issueId as Id<"issues">);
+      if (!issue || issue.orgId !== ctx.org._id) {
+        continue;
+      }
+      removedPoints += issuePoints(issue);
+      removals.push({ time, pts: issuePoints(issue) });
+    }
+
+    /** Open scope at time t: entered, not yet completed, not yet removed. */
+    const remainingAt = (t: number) => {
+      let remaining = 0;
+      for (const item of lifecycles) {
+        if (
+          item.entered <= t &&
+          !(item.completed !== null && item.completed <= t)
+        ) {
+          remaining += item.pts;
+        }
+      }
+      for (const removal of removals) {
+        if (removal.time > t) {
+          remaining += removal.pts;
+        }
+      }
+      return remaining;
+    };
+
+    const seriesEnd = Math.min(now, cycle.endDate);
+    const days: { date: number; remaining: number }[] = [];
+    for (let t = cycle.startDate; t <= seriesEnd; t += DAY_MS) {
+      days.push({ date: t, remaining: remainingAt(t) });
+    }
+    if (days.length === 0 || days[days.length - 1].date < seriesEnd) {
+      days.push({ date: seriesEnd, remaining: remainingAt(seriesEnd) });
+    }
+
+    const totalPoints = lifecycles.reduce((sum, item) => sum + item.pts, 0);
+    const addedPoints = lifecycles
+      .filter((item) => item.entered > cycle.startDate)
+      .reduce((sum, item) => sum + item.pts, 0);
+
+    // Velocity: done points across this team's recent cycles.
+    const teamCycles = await ctx.db
+      .query("cycles")
+      .withIndex("by_team", (q) => q.eq("teamId", cycle.teamId))
+      .collect();
+    const recent = teamCycles
+      .filter((c) => c.startDate <= now)
+      .sort((a, b) => a.number - b.number)
+      .slice(-6);
+    const velocity = [];
+    for (const c of recent) {
+      const cycleIssues = await ctx.db
+        .query("issues")
+        .withIndex("by_cycle", (q) => q.eq("cycleId", c._id))
+        .collect();
+      velocity.push({
+        label: `C${c.number}`,
+        points: cycleIssues
+          .filter(
+            (issue) => issue.orgId === ctx.org._id && issue.status === "done"
+          )
+          .reduce((sum, issue) => sum + issuePoints(issue), 0),
+        current: c._id === cycle._id,
+      });
+    }
+
+    return {
+      days,
+      startScope: remainingAt(cycle.startDate),
+      addedPoints,
+      removedPoints,
+      completedPoints,
+      totalPoints,
+      velocity,
+    };
+  },
+});

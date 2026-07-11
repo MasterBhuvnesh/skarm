@@ -4,7 +4,7 @@
 - [x] Search bar in issues to search the entire issue body, not just the title
 - [x] Inbox and notifications: in-app feed for mentions, assignments, and status changes
 - [ ] Roadmap view: timeline/Gantt visualization of projects and target dates
-- [ ] Cycle analytics: burndown charts, velocity, and scope-change tracking
+- [x] Cycle analytics: burndown charts, velocity, and scope-change tracking
 - [x] Issue templates and recurring issues: standardize bug reports and rituals
 
 ### AI IMPROVEMENTS
@@ -17,7 +17,7 @@
 ### INFRASTRUCTURE AND SCALING
 
 - [ ] Pagination: cursor-based pagination for orgs with tens of thousands of issues
-- [ ] Public issue sharing: read-only public links for individual issues,like preview card on sharing link and export as pdf 
+- [x] Public issue sharing: read-only public links for individual issues,like preview card on sharing link and export as pdf 
 - [ ] Import/export: bring in issues from CSV, Jira, or Linear export format
 
 ### MONETIZATION

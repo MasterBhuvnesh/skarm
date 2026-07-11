@@ -137,6 +137,13 @@ function describeActivity(entry: ActivityEntry): ReactNode {
           removed attachment <Emphasis>{oldValue}</Emphasis>
         </>
       );
+    case "cycle_changed":
+      // Values are raw cycle ids — not display-worthy, so stay generic.
+      return newValue ? (
+        <>moved this issue into a cycle</>
+      ) : (
+        <>removed this issue from its cycle</>
+      );
     case "github_issue_created":
       return (
         <>

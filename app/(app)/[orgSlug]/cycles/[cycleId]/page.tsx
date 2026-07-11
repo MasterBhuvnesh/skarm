@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CycleAnalytics } from "@/components/cycles/cycle-analytics";
 import {
   cycleDisplayName,
   cycleStatus,
@@ -203,6 +204,8 @@ function CycleDetail({
             </span>
           </div>
         </div>
+
+        <CycleAnalytics cycle={cycle} />
 
         {issues === undefined ? (
           <div className="flex items-center justify-center py-16">
