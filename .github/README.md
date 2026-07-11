@@ -32,19 +32,30 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 - Sub-issues and issue relations (blocks, blocked by, related, duplicate of)
 - File attachments via Convex storage
 - Live presence: see who is viewing the same issue
+- Public issue sharing: read-only links with an OG preview card for unfurls and print-to-PDF export; revocable instantly
 
 ### PROJECTS AND CYCLES
 
 - Projects group issues across teams with statuses, leads, target dates, and live progress
 - Cycles are time-boxed sprints per team, auto-numbered with current-cycle tracking
+- Cycle analytics: burndown chart with ideal guideline, velocity across recent cycles, and scope-change tracking (added/removed points), reconstructed from the activity log
 - Unlimited teams per organization, each with its own board and cycles
+
+### GITHUB INTEGRATION
+
+- One-click connect via a GitHub App: users pick repositories on GitHub's install screen, no manual webhook setup per workspace
+- Projects connect one or more repos (live-fetched picker with Public/Private badges, shows who connected)
+- "Also create this issue on GitHub" at creation; edits, status changes, and attachments mirror to the GitHub twin (merged PR → Done closes it)
+- PRs link to issues via `ENG-42` in branch names, titles, or bodies; opened PRs move issues to In Review, merged PRs to Done
+- All automated events appear in the timeline and inbox as a dedicated GitHub system actor, never as a user
 
 ### AI AGENT (PRO AND ENTERPRISE)
 
 - Workspace-aware chat with org-scoped tools: create, update, and search issues, summarize cycles, report project status
+- AI issue drafting: one-line idea → full spec with acceptance criteria, priority, estimate, labels, sub-issues, and relations to real existing issues — with prompt guidance, length control (short → thorough), rephrase, and discard
 - Duplicate detection via 1536-dim vector embeddings on every issue
 - Triage assist: AI-suggested priority and labels for new issues
-- Rate limited to 50 messages/user/day on Pro, unlimited on Enterprise
+- Chat and drafting share one allowance: 50 messages/user/day on Pro, unlimited on Enterprise
 
 ### BILLING AND MULTI-TENANCY
 
@@ -71,6 +82,9 @@ flowchart TB
     Convex -->|"Real-time sync"| Browser
     Clerk[Clerk Auth + Orgs + Billing] -->|"Svix Webhooks"| ConvexHTTP["Convex HTTP /clerk-webhook"]
     ConvexHTTP -->|"Sync users, orgs, members, subscriptions"| Convex
+    GitHub[GitHub App] -->|"HMAC webhooks: installs, PRs"| GHHTTP["Convex HTTP /github-webhook"]
+    GHHTTP --> Convex
+    Convex -->|"Issue sync via installation tokens"| GitHub
     Convex -->|"Agent tools + embeddings"| OpenAI[OpenAI]
     Convex -->|"File storage"| Storage[Convex Storage]
     Browser -->|"proxy.ts middleware"| Clerk
@@ -85,79 +99,17 @@ Key concepts:
 
 ## GETTING STARTED
 
-### PREREQUISITES
-
-- Node.js 18+ and pnpm
-- Accounts on [Clerk](https://clerk.com), [Convex](https://convex.dev), and an [OpenAI](https://platform.openai.com) API key
-
-### 1. INSTALL
-
 ```bash
 pnpm install
+pnpm dev   # runs Next.js and Convex in parallel
 ```
 
-### 2. ENVIRONMENT VARIABLES
+Full setup lives in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md):
 
-Create `.env.local` in the project root (see `.env.example`):
+- **App setup** — `.env.local`, Clerk (JWT template, billing plans, webhooks), Convex env vars, deployment, and a troubleshooting table
+- **GitHub integration** — creating the GitHub App (webhook + setup URLs, permissions), `GITHUB_APP_SLUG` / `GITHUB_WEBHOOK_SECRET` / `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` (base64) env vars, and how the install → webhook → sync flow works
 
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_CLERK_FRONTEND_API_URL=https://your-instance.clerk.accounts.dev
-
-NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
-NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
-NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/onboarding
-NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/onboarding
-
-CONVEX_DEPLOYMENT=dev:your-deployment
-NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
-NEXT_PUBLIC_CONVEX_SITE_URL=https://your-deployment.convex.site
-```
-
-Never commit `.env.local`.
-
-### 3. CONFIGURE CLERK
-
-1. Create a Clerk application and copy the keys into `.env.local`
-2. Enable Organizations
-3. Create a JWT template named exactly `convex` with these claims:
-
-```json
-{
-  "org_id": "{{org.id}}",
-  "org_slug": "{{org.slug}}",
-  "org_role": "{{org.role}}"
-}
-```
-
-4. Set up Billing with three organization plans: `free_org`, `pro`, `enterprise`
-5. Attach features to the paid plans: `ai_agent`, `unlimited_projects`, `unlimited_issues`, `unlimited_seats`, `unlimited_ai`, `priority_support`
-6. Copy your plan IDs into [`lib/plans.ts`](../lib/plans.ts)
-
-### 4. CONFIGURE CONVEX
-
-Run `npx convex dev` to create or link a project, then set env vars on the deployment:
-
-```bash
-npx convex env set CLERK_FRONTEND_API_URL https://your-instance.clerk.accounts.dev
-npx convex env set CLERK_WEBHOOK_SECRET whsec_...
-npx convex env set OPENAI_API_KEY sk-...
-```
-
-### 5. CONFIGURE CLERK WEBHOOKS
-
-1. In Clerk, create a webhook endpoint pointing to `https://your-deployment.convex.site/clerk-webhook` (note `.convex.site`, not `.convex.cloud`)
-2. Subscribe to `user.*`, `organization.*`, `organizationMembership.*`, and all `subscription.*` / `subscriptionItem.*` events
-3. Copy the signing secret into the Convex env var `CLERK_WEBHOOK_SECRET`
-
-### 6. RUN
-
-```bash
-pnpm dev
-```
-
-Runs Next.js and Convex in parallel. Open [http://localhost:3000](http://localhost:3000), sign up, create an organization, and you are in.
+Once configured: open [http://localhost:3000](http://localhost:3000), sign up, create an organization, and you are in.
 
 ## DATABASE SCHEMA
 
@@ -179,6 +131,10 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | cycles                   | Sprints per team                 | `teamId`, `number`, `startDate`, `endDate`                             |
 | attachments              | Files on issues                  | `issueId`, `storageId`, `fileName`                                     |
 | issueTemplates           | Templates + recurring schedules  | `teamId`, `titlePrefix`, `priority`, `cadence`, `nextRunAt`            |
+| integrations             | GitHub App connection per org    | `orgId`, `installationId`, `repositories[]`, `enabled`                 |
+| pullRequests             | PRs linked to issues             | `issueId`, `repo`, `number`, `state`                                   |
+| githubIssues             | Synced GitHub issue twins        | `issueId`, `repo`, `number`, `url`                                     |
+| issueShares              | Public read-only share links     | `issueId`, `token`, `createdBy`                                        |
 | views                    | Saved filter configurations      | `creatorId`, `filters`, `shared`                                       |
 
 ## PROJECT STRUCTURE
@@ -208,21 +164,6 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | `npx convex dev`         | Convex dev server (generates types)       |
 | `npx convex deploy`      | Deploy Convex to production               |
 
-## DEPLOYMENT
+## DEPLOYMENT AND TROUBLESHOOTING
 
-1. Deploy the frontend to [Vercel](https://vercel.com) and add all `.env.local` variables
-2. Run `npx convex deploy` and set `CLERK_FRONTEND_API_URL`, `CLERK_WEBHOOK_SECRET`, and `OPENAI_API_KEY` on the production Convex deployment
-3. Point the Clerk webhook at the production Convex HTTP URL and switch to production Clerk keys
-4. Test end to end: sign up, create org, create issue, upgrade plan, AI chat
-
-## TROUBLESHOOTING
-
-| Problem                                  | Fix                                                                                  |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ |
-| "Not authenticated" errors from Convex   | JWT template must be named exactly `convex`; set `CLERK_FRONTEND_API_URL` on Convex  |
-| Org pages 404 or redirect to onboarding  | JWT template needs `org_id` / `org_slug` / `org_role` claims and an active org       |
-| Webhook returns 400                      | Signing secret must match `CLERK_WEBHOOK_SECRET` (not `CLERK_SECRET_KEY`)            |
-| User missing in Convex after sign-up     | Webhook URL must end with `/clerk-webhook` on the `.convex.site` domain              |
-| Plan not updating after checkout         | Subscribe to all `subscription.*` and `subscriptionItem.*` webhook events            |
-| AI chat errors immediately               | Set `OPENAI_API_KEY` on the Convex deployment                                        |
-| Convex types not updating                | Keep `npx convex dev` running                                                        |
+Both covered in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md) — Vercel + `npx convex deploy` steps, production env vars, and a table of common failures (JWT template naming, webhook secrets, missing env vars).
