@@ -40,6 +40,7 @@ import type * as presenceFns from "../presenceFns.js";
 import type * as projects from "../projects.js";
 import type * as search from "../search.js";
 import type * as seed from "../seed.js";
+import type * as share from "../share.js";
 import type * as teams from "../teams.js";
 import type * as users from "../users.js";
 import type * as views from "../views.js";
@@ -84,6 +85,7 @@ declare const fullApi: ApiFromModules<{
   projects: typeof projects;
   search: typeof search;
   seed: typeof seed;
+  share: typeof share;
   teams: typeof teams;
   users: typeof users;
   views: typeof views;

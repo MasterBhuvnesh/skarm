@@ -229,6 +229,17 @@ export default defineSchema({
     commentId: v.number(),
   }).index("by_attachment", ["attachmentId"]),
 
+  /** Public read-only share links for individual issues. */
+  issueShares: defineTable({
+    orgId: v.id("organizations"),
+    issueId: v.id("issues"),
+    /** Unguessable public token; the whole secret of the share URL. */
+    token: v.string(),
+    createdBy: v.id("users"),
+  })
+    .index("by_issue", ["issueId"])
+    .index("by_token", ["token"]),
+
   /** Cohere issue ↔ GitHub issue sync links (created by the sync layer). */
   githubIssues: defineTable({
     orgId: v.id("organizations"),

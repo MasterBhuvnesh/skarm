@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { IssueProperties } from "@/components/issue-detail/issue-properties";
+import { ShareButton } from "@/components/issue-detail/share-button";
 import {
   issueDetailMainSlots,
   issueDetailSidebarSlots,
@@ -109,6 +110,7 @@ function IssueDetail({
         <span className="font-mono text-xs text-muted-foreground">
           {identifier}
         </span>
+        <ShareButton issueId={issue._id} />
       </header>
       <div className="flex min-h-0 flex-1">
         <ScrollArea className="flex-1">

@@ -5,6 +5,8 @@ const isPublicRoute = createRouteMatcher([
   "/pricing(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  // Read-only public issue share links (token-gated in the Convex query).
+  "/share(.*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
