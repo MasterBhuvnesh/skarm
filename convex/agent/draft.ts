@@ -8,6 +8,11 @@ import {
   issueRelationTypeValidator,
 } from "../schema";
 import {
+  aiMessageKey,
+  aiRateLimiter,
+  PRO_DAILY_MESSAGE_LIMIT,
+} from "./limiter";
+import {
   AI_NOT_CONFIGURED_MESSAGE,
   chatModel,
   isAiConfigured,
@@ -204,6 +209,24 @@ export const draftIssue = action({
     });
     if (!isAiConfigured()) {
       return { ok: false as const, error: AI_NOT_CONFIGURED_MESSAGE };
+    }
+
+    // Drafts share the chat allowance: 50 AI messages/user/day on Pro,
+    // unlimited on Enterprise (free plans never pass authorizeAi).
+    if (auth.plan === "pro") {
+      const status = await aiRateLimiter.limit(ctx, "aiMessagesDaily", {
+        key: aiMessageKey(auth.orgId, auth.userId),
+      });
+      if (!status.ok) {
+        const hours = Math.max(
+          1,
+          Math.ceil((status.retryAfter ?? 0) / (60 * 60 * 1000))
+        );
+        return {
+          ok: false as const,
+          error: `Daily AI limit reached (${PRO_DAILY_MESSAGE_LIMIT} messages/day on Pro). Try again in about ${hours}h, or upgrade to Enterprise for unlimited AI.`,
+        };
+      }
     }
 
     try {
