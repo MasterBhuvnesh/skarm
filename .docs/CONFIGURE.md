@@ -164,7 +164,9 @@ Lets members paste Figma file/frame links on issues; Cohere fetches the
 design's name and a rendered thumbnail via the Figma REST API.
 
 1. Create an OAuth app at [figma.com/developers/apps](https://www.figma.com/developers/apps)
-   with redirect URI `<convex-site-url>/figma-callback`.
+   with redirect URI `<convex-site-url>/figma-callback`, and under the app's
+   **OAuth scopes** enable `file_content:read` and `file_metadata:read`
+   (Cohere requests exactly these two).
 2. Set the credentials on Convex:
 
 ```bash

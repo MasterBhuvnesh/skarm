@@ -221,7 +221,10 @@ export const beginFigmaConnect = orgAdminMutation({
     const redirectUri = encodeURIComponent(
       `${process.env.CONVEX_SITE_URL}/figma-callback`
     );
-    return `https://www.figma.com/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${encodeURIComponent("files:read")}&state=${nonce}&response_type=code`;
+    // Granular scopes (must be enabled on the Figma app): file contents +
+    // rendered images, and file metadata.
+    const scope = encodeURIComponent("file_content:read file_metadata:read");
+    return `https://www.figma.com/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${nonce}&response_type=code`;
   },
 });
 
