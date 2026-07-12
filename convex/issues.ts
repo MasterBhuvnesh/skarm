@@ -5,6 +5,10 @@ import { MutationCtx, QueryCtx } from "./_generated/server";
 import { scheduleGithubIssueSync } from "./github/sync";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
+import {
+  autoLinkFigmaUrls,
+  scheduleFigmaDevSync,
+} from "./lib/figmaLinks";
 import { assertCanCreateIssue } from "./lib/limits";
 import { createNotification } from "./notifications";
 import {
@@ -311,6 +315,14 @@ export const create = orgMutation({
         repo: githubRepo,
       });
     }
+
+    // Figma URLs pasted into the description attach to the Figma panel.
+    await autoLinkFigmaUrls(ctx, {
+      orgId: ctx.org._id,
+      issueId,
+      actorId: ctx.user._id,
+      text: args.description,
+    });
     return issueId;
   },
 });
@@ -439,6 +451,18 @@ export const update = orgMutation({
       updates.status !== undefined
     ) {
       await scheduleGithubIssueSync(ctx, issue._id);
+    }
+    if (args.description !== undefined) {
+      await autoLinkFigmaUrls(ctx, {
+        orgId: ctx.org._id,
+        issueId: issue._id,
+        actorId: ctx.user._id,
+        text: args.description,
+      });
+    }
+    // Keep pushed Figma Dev Mode resources ("ENG-42 · Status · Title") fresh.
+    if (updates.title !== undefined || updates.status !== undefined) {
+      await scheduleFigmaDevSync(ctx, issue._id);
     }
     return null;
   },

@@ -222,8 +222,11 @@ export const beginFigmaConnect = orgAdminMutation({
       `${process.env.CONVEX_SITE_URL}/figma-callback`
     );
     // Granular scopes (must be enabled on the Figma app): file contents +
-    // rendered images, and file metadata.
-    const scope = encodeURIComponent("file_content:read file_metadata:read");
+    // rendered images, file metadata, posting comments, and Dev Mode
+    // resources. Changing this list requires reconnecting.
+    const scope = encodeURIComponent(
+      "file_content:read file_metadata:read file_comments:write file_versions:read file_dev_resources:write"
+    );
     return `https://www.figma.com/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${nonce}&response_type=code`;
   },
 });

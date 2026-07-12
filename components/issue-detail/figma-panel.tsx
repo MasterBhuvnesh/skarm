@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { Plus, X } from "lucide-react";
+import { Plus, RefreshCcw, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Separator } from "@/components/ui/separator";
 import { FigmaIcon } from "@/components/shared/figma-icon";
+import { formatRelativeTime } from "./format";
 import { IssueDetailSlotProps } from "./slots";
 
 /** Figma designs linked to this issue, with fetched thumbnails. */
@@ -16,6 +17,7 @@ export function FigmaPanel({ issue }: IssueDetailSlotProps) {
   const links = useQuery(api.figma.listByIssue, { issueId: issue._id });
   const addLink = useMutation(api.figma.addLink);
   const removeLink = useMutation(api.figma.removeLink);
+  const refreshPreviews = useMutation(api.figma.refreshPreviews);
 
   const [adding, setAdding] = useState(false);
   const [url, setUrl] = useState("");
@@ -50,14 +52,31 @@ export function FigmaPanel({ issue }: IssueDetailSlotProps) {
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-medium text-muted-foreground">Figma</h3>
           {connected && (
-            <button
-              type="button"
-              onClick={() => setAdding((a) => !a)}
-              aria-label="Add Figma link"
-              className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <Plus className="size-3.5" />
-            </button>
+            <span className="flex items-center gap-0.5">
+              {(links?.length ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    refreshPreviews({ issueId: issue._id }).catch(() =>
+                      toast.error("Failed to refresh previews")
+                    )
+                  }
+                  aria-label="Refresh previews"
+                  title="Refresh names, thumbnails and edit times"
+                  className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RefreshCcw className="size-3" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setAdding((a) => !a)}
+                aria-label="Add Figma link"
+                className="rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Plus className="size-3.5" />
+              </button>
+            </span>
           )}
         </div>
 
@@ -109,7 +128,10 @@ export function FigmaPanel({ issue }: IssueDetailSlotProps) {
                   {link.name ?? "Figma design"}
                 </span>
                 <span className="block truncate text-[10px] text-muted-foreground">
-                  {link.url.replace(/^https:\/\/(www\.)?/, "")}
+                  {link.lastModified
+                    ? `edited ${formatRelativeTime(link.lastModified)}`
+                    : link.url.replace(/^https:\/\/(www\.)?/, "")}
+                  {link.inDevMode ? " · in Dev Mode" : ""}
                 </span>
               </span>
             </a>

@@ -224,6 +224,10 @@ export default defineSchema({
     /** Filled by the preview fetch action */
     name: v.optional(v.string()),
     thumbnailUrl: v.optional(v.string()),
+    /** Design's lastModified (ms), for the freshness stamp */
+    lastModified: v.optional(v.number()),
+    /** Figma Dev Mode resource id pushed for this link (node links only) */
+    devResourceId: v.optional(v.string()),
   }).index("by_issue", ["issueId"]),
 
   pullRequests: defineTable({

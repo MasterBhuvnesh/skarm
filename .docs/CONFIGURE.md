@@ -165,8 +165,10 @@ design's name and a rendered thumbnail via the Figma REST API.
 
 1. Create an OAuth app at [figma.com/developers/apps](https://www.figma.com/developers/apps)
    with redirect URI `<convex-site-url>/figma-callback`, and under the app's
-   **OAuth scopes** enable `file_content:read` and `file_metadata:read`
-   (Cohere requests exactly these two).
+   **OAuth scopes** enable `file_content:read`, `file_metadata:read`,
+   `file_comments:write`, `file_versions:read`, and
+   `file_dev_resources:write` (Cohere requests exactly these). Changing
+   scopes later requires clicking Connect again to mint a new token.
 2. Set the credentials on Convex:
 
 ```bash
@@ -176,9 +178,23 @@ npx convex env set FIGMA_CLIENT_SECRET <client secret>
 
 3. In Cohere: Settings → Integrations → Figma → **Connect** (workspace
    admins only). Figma asks for read-only file access and redirects back.
-4. On any issue: sidebar → Figma → **+** → paste a link. The name and
-   thumbnail fill in a moment later; OAuth tokens are refreshed
-   automatically when they expire.
+4. On any issue: sidebar → Figma → **+** → paste a link (or just paste a
+   figma.com URL into a description or comment — it auto-attaches). The
+   name, thumbnail, and "edited Xh ago" freshness stamp fill in a moment
+   later; OAuth tokens are refreshed automatically when they expire.
+
+What the integration does once connected:
+
+- **Previews**: design name, rendered thumbnail, and last-edited time on
+  each link card (↻ in the panel header re-fetches).
+- **Comment to Figma**: the issue comment composer gains an "Also post to
+  Figma" checkbox; the comment lands on the linked design (pinned to the
+  frame for node links) as "Name via Cohere ENG-42: …".
+- **Dev Mode resources**: frame links push a resource onto the frame in
+  Figma Dev Mode — "ENG-42 · In Progress · Title" linking back to the
+  Cohere issue — renamed automatically when the status/title changes and
+  removed when the link is removed. Requires `SITE_URL` to be set for the
+  link to point at your app.
 
 ### 2. Set Convex environment variables
 

@@ -1,9 +1,11 @@
 import { v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { getOrgIssue } from "./issues";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
+import { autoLinkFigmaUrls } from "./lib/figmaLinks";
 import { createNotification } from "./notifications";
 
 /** Comment enriched with author + mention display info for the feed. */
@@ -112,6 +114,8 @@ export const create = orgMutation({
     issueId: v.id("issues"),
     body: v.string(),
     mentions: v.optional(v.array(v.id("users"))),
+    /** Also post this comment to the issue's linked Figma design(s). */
+    postToFigma: v.optional(v.boolean()),
   },
   returns: v.id("comments"),
   handler: async (ctx, args) => {
@@ -151,6 +155,21 @@ export const create = orgMutation({
         issueId: issue._id,
         type: "mention",
         commentId,
+      });
+    }
+
+    // Figma URLs pasted into comments attach to the Figma panel.
+    await autoLinkFigmaUrls(ctx, {
+      orgId: ctx.org._id,
+      issueId: issue._id,
+      actorId: ctx.user._id,
+      text: body,
+    });
+    if (args.postToFigma) {
+      await ctx.scheduler.runAfter(0, internal.figma.pushComment, {
+        issueId: issue._id,
+        authorName: ctx.user.name,
+        body,
       });
     }
 
