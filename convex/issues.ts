@@ -229,7 +229,9 @@ export const create = orgMutation({
       }
       const integration = await ctx.db
         .query("integrations")
-        .withIndex("by_org", (q) => q.eq("orgId", ctx.org._id))
+        .withIndex("by_org_and_type", (q) =>
+          q.eq("orgId", ctx.org._id).eq("type", "github")
+        )
         .unique();
       if (!integration?.enabled || integration.installationId === undefined) {
         throw new Error("GitHub is not connected for this workspace");

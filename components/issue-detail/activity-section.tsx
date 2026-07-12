@@ -137,6 +137,8 @@ function describeActivity(entry: ActivityEntry): ReactNode {
           removed attachment <Emphasis>{oldValue}</Emphasis>
         </>
       );
+    case "figma_linked":
+      return <>linked a Figma design</>;
     case "cycle_changed":
       // Values are raw cycle ids — not display-worthy, so stay generic.
       return newValue ? (

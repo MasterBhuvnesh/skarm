@@ -156,6 +156,28 @@ the linked GitHub issue reflected back), additionally subscribe to the
 **Issues** and **Issue comment** events. Events from bots (including the
 app itself) are ignored to prevent echo loops.
 
+---
+
+## Figma integration
+
+Lets members paste Figma file/frame links on issues; Cohere fetches the
+design's name and a rendered thumbnail via the Figma REST API.
+
+1. Create an OAuth app at [figma.com/developers/apps](https://www.figma.com/developers/apps)
+   with redirect URI `<convex-site-url>/figma-callback`.
+2. Set the credentials on Convex:
+
+```bash
+npx convex env set FIGMA_CLIENT_ID <client id>
+npx convex env set FIGMA_CLIENT_SECRET <client secret>
+```
+
+3. In Cohere: Settings → Integrations → Figma → **Connect** (workspace
+   admins only). Figma asks for read-only file access and redirects back.
+4. On any issue: sidebar → Figma → **+** → paste a link. The name and
+   thumbnail fill in a moment later; OAuth tokens are refreshed
+   automatically when they expire.
+
 ### 2. Set Convex environment variables
 
 The app slug is in the app page URL: `github.com/settings/apps/<slug>`.

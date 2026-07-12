@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { formatRelativeTime } from "@/components/issue-detail/format";
+import { FigmaIcon } from "@/components/shared/figma-icon";
 import { GithubIcon } from "@/components/shared/github-icon";
 
 function RepositoryList({ repositories }: { repositories: string[] }) {
@@ -231,6 +232,132 @@ export function IntegrationsManager() {
           </>
         )}
       </div>
+
+      <FigmaCard />
+    </div>
+  );
+}
+
+function FigmaCard() {
+  const data = useQuery(api.integrations.getFigma);
+  const beginConnect = useMutation(api.integrations.beginFigmaConnect);
+  const setEnabled = useMutation(api.integrations.setFigmaEnabled);
+  const disconnect = useMutation(api.integrations.disconnectFigma);
+  const [connecting, setConnecting] = useState(false);
+
+  const onError = (error: unknown) => {
+    setConnecting(false);
+    toast.error(error instanceof Error ? error.message : "Something went wrong");
+  };
+
+  const connect = async () => {
+    setConnecting(true);
+    try {
+      // Figma's OAuth consent screen, then back via /figma-callback.
+      window.location.href = await beginConnect();
+    } catch (error) {
+      onError(error);
+    }
+  };
+
+  const connection = data?.connection ?? null;
+
+  return (
+    <div className="rounded-lg border">
+      <div className="flex items-center gap-3 p-4">
+        <FigmaIcon className="h-6 w-4 shrink-0" />
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium">Figma</div>
+          <p className="truncate text-xs text-muted-foreground">
+            {connection
+              ? `Connected by ${connection.connectedByName} · ${formatRelativeTime(connection.connectedAt)}`
+              : "Attach designs to issues with live name and thumbnail previews."}
+          </p>
+        </div>
+        {data === undefined ? (
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        ) : connection === null ? (
+          <Button
+            size="sm"
+            disabled={!data.appConfigured || connecting}
+            onClick={() => void connect()}
+          >
+            {connecting && <Loader2 className="size-3.5 animate-spin" />}
+            Connect
+          </Button>
+        ) : (
+          <Switch
+            checked={connection.enabled}
+            onCheckedChange={(enabled) =>
+              setEnabled({ enabled }).catch(onError)
+            }
+            aria-label="Enable Figma integration"
+          />
+        )}
+      </div>
+
+      {data !== undefined && connection === null && !data.appConfigured && (
+        <>
+          <Separator />
+          <p className="p-4 text-xs text-muted-foreground">
+            The Figma app isn&apos;t configured on this deployment yet. Create
+            one at figma.com → Developers → My apps with redirect URI{" "}
+            <code className="rounded bg-muted px-1">
+              {process.env.NEXT_PUBLIC_CONVEX_SITE_URL}/figma-callback
+            </code>
+            , then run{" "}
+            <code className="rounded bg-muted px-1">
+              npx convex env set FIGMA_CLIENT_ID …
+            </code>{" "}
+            and{" "}
+            <code className="rounded bg-muted px-1">
+              npx convex env set FIGMA_CLIENT_SECRET …
+            </code>
+          </p>
+        </>
+      )}
+
+      {connection && (
+        <>
+          <Separator />
+          <div className="flex flex-col gap-3 p-4">
+            <p className="text-xs text-muted-foreground">
+              Paste a Figma file or frame link on any issue (Figma section in
+              the issue sidebar) — the design&apos;s name and a thumbnail are
+              fetched automatically.
+            </p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-fit text-destructive hover:text-destructive"
+                >
+                  Disconnect
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Disconnect Figma?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    The stored access token is deleted and previews stop
+                    updating. Already-linked designs stay on their issues.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => disconnect().catch(onError)}
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                  >
+                    Disconnect
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </>
+      )}
     </div>
   );
 }

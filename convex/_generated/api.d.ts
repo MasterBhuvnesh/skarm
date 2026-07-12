@@ -23,6 +23,7 @@ import type * as attachments from "../attachments.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as cycles from "../cycles.js";
+import type * as figma from "../figma.js";
 import type * as github_client from "../github/client.js";
 import type * as github_sync from "../github/sync.js";
 import type * as graph from "../graph.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   crons: typeof crons;
   cycles: typeof cycles;
+  figma: typeof figma;
   "github/client": typeof github_client;
   "github/sync": typeof github_sync;
   graph: typeof graph;

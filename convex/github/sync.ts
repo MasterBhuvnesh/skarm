@@ -29,7 +29,9 @@ export const getAuthedInstallation = internalQuery({
     const { org } = await getAuthContext(ctx);
     const integration = await ctx.db
       .query("integrations")
-      .withIndex("by_org", (q) => q.eq("orgId", org._id))
+      .withIndex("by_org_and_type", (q) =>
+        q.eq("orgId", org._id).eq("type", "github")
+      )
       .unique();
     if (!integration?.enabled || integration.installationId === undefined) {
       throw new Error("GitHub is not connected for this workspace");
@@ -62,7 +64,9 @@ export const getIssueForSync = internalQuery({
     }
     const integration = await ctx.db
       .query("integrations")
-      .withIndex("by_org", (q) => q.eq("orgId", issue.orgId))
+      .withIndex("by_org_and_type", (q) =>
+        q.eq("orgId", issue.orgId).eq("type", "github")
+      )
       .unique();
     if (!integration?.enabled || integration.installationId === undefined) {
       return null;

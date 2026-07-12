@@ -264,4 +264,74 @@ http.route({
   }),
 });
 
+/**
+ * Figma OAuth callback: exchange the authorization code for tokens and
+ * bind them to the org whose nonce started the flow, then bounce the user
+ * back to the integrations settings page.
+ */
+http.route({
+  path: "/figma-callback",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const code = url.searchParams.get("code");
+    const nonce = url.searchParams.get("state");
+    if (!code || !nonce) {
+      return new Response("Missing code or state", { status: 400 });
+    }
+    const clientId = process.env.FIGMA_CLIENT_ID;
+    const clientSecret = process.env.FIGMA_CLIENT_SECRET;
+    if (!clientId || !clientSecret) {
+      return new Response("Figma app not configured", { status: 500 });
+    }
+
+    const exchange = await fetch("https://api.figma.com/v1/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Authorization: `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      },
+      body: new URLSearchParams({
+        redirect_uri: `${process.env.CONVEX_SITE_URL}/figma-callback`,
+        code,
+        grant_type: "authorization_code",
+      }),
+    });
+    if (!exchange.ok) {
+      console.error("Figma token exchange failed", await exchange.text());
+      return new Response(
+        "Figma authorization failed — retry Connect from Settings → Integrations.",
+        { status: 400 }
+      );
+    }
+    const tokens = (await exchange.json()) as {
+      access_token: string;
+      refresh_token?: string;
+      expires_in?: number;
+    };
+
+    const orgSlug = await ctx.runMutation(
+      internal.integrations.completeFigmaSetup,
+      {
+        nonce,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token ?? "",
+        expiresIn: tokens.expires_in ?? 0,
+      }
+    );
+    if (orgSlug === null) {
+      return new Response(
+        "This connect link expired — retry Connect from Settings → Integrations.",
+        { status: 400 }
+      );
+    }
+
+    const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
+    return new Response(null, {
+      status: 302,
+      headers: { Location: `${siteUrl}/${orgSlug}/settings/integrations` },
+    });
+  }),
+});
+
 export default http;

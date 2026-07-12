@@ -186,8 +186,7 @@ export default defineSchema({
 
   integrations: defineTable({
     orgId: v.id("organizations"),
-    /** Integration kind; only GitHub today */
-    type: v.literal("github"),
+    type: v.union(v.literal("github"), v.literal("figma")),
     enabled: v.boolean(),
     connectedBy: v.id("users"),
     /** GitHub App installation id (set once install completes) */
@@ -196,16 +195,36 @@ export default defineSchema({
     repositories: v.optional(v.array(v.string())),
     /** Legacy manual-webhook secret; superseded by the app-level secret */
     webhookSecret: v.optional(v.string()),
+    /** Figma OAuth tokens (never returned to clients) */
+    figmaAccessToken: v.optional(v.string()),
+    figmaRefreshToken: v.optional(v.string()),
+    /** ms epoch when figmaAccessToken expires */
+    figmaTokenExpiresAt: v.optional(v.number()),
   })
     .index("by_org", ["orgId"])
+    .index("by_org_and_type", ["orgId", "type"])
     .index("by_installation", ["installationId"]),
 
-  /** Single-use nonces binding a GitHub App install back to org + user. */
+  /** Single-use nonces binding an integration connect (GitHub install /
+      Figma OAuth) back to org + user. */
   githubInstallStates: defineTable({
     orgId: v.id("organizations"),
     userId: v.id("users"),
     nonce: v.string(),
   }).index("by_nonce", ["nonce"]),
+
+  /** Figma files/frames linked to issues, with fetched preview metadata. */
+  figmaLinks: defineTable({
+    orgId: v.id("organizations"),
+    issueId: v.id("issues"),
+    url: v.string(),
+    fileKey: v.string(),
+    nodeId: v.optional(v.string()),
+    addedBy: v.id("users"),
+    /** Filled by the preview fetch action */
+    name: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
+  }).index("by_issue", ["issueId"]),
 
   pullRequests: defineTable({
     orgId: v.id("organizations"),

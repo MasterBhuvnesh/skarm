@@ -28,7 +28,9 @@ async function getGithubIntegration(
 ): Promise<Doc<"integrations"> | null> {
   return await ctx.db
     .query("integrations")
-    .withIndex("by_org", (q) => q.eq("orgId", orgId))
+    .withIndex("by_org_and_type", (q) =>
+      q.eq("orgId", orgId).eq("type", "github")
+    )
     .unique();
 }
 
@@ -150,6 +152,152 @@ export const listByIssue = orgQuery({
       state: pr.state,
       authorLogin: pr.authorLogin,
     }));
+  },
+});
+
+// ── Figma (OAuth) ──────────────────────────────────────────────────────────
+
+async function getFigmaIntegration(
+  ctx: { db: QueryCtx["db"] },
+  orgId: Id<"organizations">
+): Promise<Doc<"integrations"> | null> {
+  return await ctx.db
+    .query("integrations")
+    .withIndex("by_org_and_type", (q) =>
+      q.eq("orgId", orgId).eq("type", "figma")
+    )
+    .unique();
+}
+
+export const getFigma = orgQuery({
+  args: {},
+  returns: v.object({
+    /** Whether FIGMA_CLIENT_ID is set on the deployment. */
+    appConfigured: v.boolean(),
+    connection: v.union(
+      v.null(),
+      v.object({
+        enabled: v.boolean(),
+        connectedByName: v.string(),
+        connectedAt: v.number(),
+      })
+    ),
+  }),
+  handler: async (ctx) => {
+    const integration = await getFigmaIntegration(ctx, ctx.org._id);
+    const connectedBy = integration
+      ? await ctx.db.get(integration.connectedBy)
+      : null;
+    return {
+      appConfigured: !!process.env.FIGMA_CLIENT_ID,
+      connection: integration
+        ? {
+            enabled: integration.enabled,
+            connectedByName: connectedBy?.name ?? "Unknown user",
+            connectedAt: integration._creationTime,
+          }
+        : null,
+    };
+  },
+});
+
+/** Mint a nonce and return Figma's OAuth URL to redirect to. */
+export const beginFigmaConnect = orgAdminMutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    const clientId = process.env.FIGMA_CLIENT_ID;
+    if (!clientId) {
+      throw new Error("FIGMA_CLIENT_ID is not set on the Convex deployment");
+    }
+    const nonce = crypto.randomUUID();
+    // ponytail: reuses the GitHub install-state table — it's just
+    // (orgId, userId, nonce); rename to oauthStates if a third OAuth lands.
+    await ctx.db.insert("githubInstallStates", {
+      orgId: ctx.org._id,
+      userId: ctx.user._id,
+      nonce,
+    });
+    const redirectUri = encodeURIComponent(
+      `${process.env.CONVEX_SITE_URL}/figma-callback`
+    );
+    return `https://www.figma.com/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&scope=file_read&state=${nonce}&response_type=code`;
+  },
+});
+
+export const setFigmaEnabled = orgAdminMutation({
+  args: { enabled: v.boolean() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const integration = await getFigmaIntegration(ctx, ctx.org._id);
+    if (!integration) {
+      throw new Error("Figma is not connected");
+    }
+    await ctx.db.patch(integration._id, { enabled: args.enabled });
+    return null;
+  },
+});
+
+/** Remove the Figma connection. Linked designs on issues are kept. */
+export const disconnectFigma = orgAdminMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const integration = await getFigmaIntegration(ctx, ctx.org._id);
+    if (integration) {
+      await ctx.db.delete(integration._id);
+    }
+    return null;
+  },
+});
+
+/** Bind a finished Figma OAuth exchange to the org that started it. */
+export const completeFigmaSetup = internalMutation({
+  args: {
+    nonce: v.string(),
+    accessToken: v.string(),
+    refreshToken: v.string(),
+    /** Token lifetime in seconds (0 = unknown/non-expiring). */
+    expiresIn: v.number(),
+  },
+  returns: v.union(v.null(), v.string()),
+  handler: async (ctx, args) => {
+    const state = await ctx.db
+      .query("githubInstallStates")
+      .withIndex("by_nonce", (q) => q.eq("nonce", args.nonce))
+      .unique();
+    if (!state) {
+      return null;
+    }
+    await ctx.db.delete(state._id);
+    if (Date.now() - state._creationTime > NONCE_TTL_MS) {
+      return null;
+    }
+
+    const tokenFields = {
+      figmaAccessToken: args.accessToken,
+      figmaRefreshToken: args.refreshToken,
+      figmaTokenExpiresAt:
+        args.expiresIn > 0 ? Date.now() + args.expiresIn * 1000 : undefined,
+    };
+    const existing = await getFigmaIntegration(ctx, state.orgId);
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        ...tokenFields,
+        connectedBy: state.userId,
+        enabled: true,
+      });
+    } else {
+      await ctx.db.insert("integrations", {
+        orgId: state.orgId,
+        type: "figma",
+        enabled: true,
+        connectedBy: state.userId,
+        ...tokenFields,
+      });
+    }
+    const org = await ctx.db.get(state.orgId);
+    return org?.slug ?? null;
   },
 });
 
