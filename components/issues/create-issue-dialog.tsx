@@ -12,6 +12,7 @@ import {
   Pencil,
   Sparkles,
   Undo2,
+  Users,
   X,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
@@ -316,6 +317,24 @@ export function CreateIssueDialog({
             New issue
           </DialogTitle>
         </DialogHeader>
+        {teams !== undefined && teams.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 px-2 py-8 text-center">
+            <div className="flex size-11 items-center justify-center rounded-full bg-muted">
+              <Users className="size-5 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium">You&apos;re not on a team yet</p>
+              <p className="text-xs text-muted-foreground">
+                Issues live inside a team. Create a team from the sidebar (the
+                + next to “Your teams”), then you can add issues to it.
+              </p>
+            </div>
+            <Button size="sm" onClick={() => onOpenChange(false)}>
+              Got it
+            </Button>
+          </div>
+        ) : (
+        <>
         <div className="-mr-2 flex max-h-[55vh] flex-col gap-3 overflow-y-auto pr-2">
           <Input
             autoFocus
@@ -727,6 +746,8 @@ export function CreateIssueDialog({
             Create issue
           </Button>
         </div>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );
