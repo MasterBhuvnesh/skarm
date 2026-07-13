@@ -21,6 +21,33 @@ import { createNotification } from "../notifications";
  * install/webhook lifecycle.
  */
 
+/**
+ * Store the API-fetched repo list for an installation (called by
+ * github/client.ts syncRepositories/refreshRepositories). Lives here rather
+ * than integrations.ts to avoid an integrations ↔ client type-inference cycle.
+ */
+export const storeRepositories = internalMutation({
+  args: {
+    installationId: v.number(),
+    repositories: v.array(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const integration = await ctx.db
+      .query("integrations")
+      .withIndex("by_installation", (q) =>
+        q.eq("installationId", args.installationId)
+      )
+      .first();
+    if (integration) {
+      await ctx.db.patch(integration._id, {
+        repositories: args.repositories,
+      });
+    }
+    return null;
+  },
+});
+
 /** Resolve the caller's org integration for API-backed actions. */
 export const getAuthedInstallation = internalQuery({
   args: {},

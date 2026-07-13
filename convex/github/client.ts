@@ -98,30 +98,85 @@ export const repositoryValidator = v.object({
   private: v.boolean(),
 });
 
+async function fetchInstallationRepos(
+  installationId: number
+): Promise<GithubRepo[]> {
+  const token = await installationToken(installationId);
+  const data = await githubFetch<{ repositories?: GithubRepo[] }>(
+    token,
+    "GET",
+    "/installation/repositories?per_page=100"
+  );
+  return data.repositories ?? [];
+}
+
 /**
  * Live list of repositories the org's installation can access — powers the
  * repo pickers. Auth: resolved from the caller's Clerk identity.
  */
+type RepositoryInfo = {
+  fullName: string;
+  owner: string;
+  name: string;
+  private: boolean;
+};
+
 export const listRepositories = action({
   args: {},
   returns: v.array(repositoryValidator),
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<RepositoryInfo[]> => {
     const { installationId } = await ctx.runQuery(
       internal.github.sync.getAuthedInstallation,
       {}
     );
-    const token = await installationToken(installationId);
-    const data = await githubFetch<{ repositories?: GithubRepo[] }>(
-      token,
-      "GET",
-      "/installation/repositories?per_page=100"
-    );
-    return (data.repositories ?? []).map((repo) => ({
+    return (await fetchInstallationRepos(installationId)).map((repo) => ({
       fullName: repo.full_name,
       owner: repo.owner?.login ?? repo.full_name.split("/")[0],
       name: repo.name,
       private: repo.private,
     }));
+  },
+});
+
+/**
+ * Pull the installation's repo list from the API and store it, instead of
+ * waiting for the installation webhook — which races with completeSetup and
+ * is dropped if it arrives before the integration row exists (leaving the
+ * settings repo list stuck "Syncing…"). Scheduled on connect and callable
+ * from the settings page to self-heal an already-connected workspace.
+ */
+export const syncRepositories = internalAction({
+  args: { installationId: v.number() },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    try {
+      const repos = await fetchInstallationRepos(args.installationId);
+      await ctx.runMutation(internal.github.sync.storeRepositories, {
+        installationId: args.installationId,
+        repositories: repos.map((repo) => repo.full_name).sort(),
+      });
+    } catch (error) {
+      console.error("GitHub repository sync failed", error);
+    }
+    return null;
+  },
+});
+
+/** Admin-triggered repo re-sync from the settings page. */
+export const refreshRepositories = action({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx): Promise<null> => {
+    const { installationId } = await ctx.runQuery(
+      internal.github.sync.getAuthedInstallation,
+      {}
+    );
+    const repos = await fetchInstallationRepos(installationId);
+    await ctx.runMutation(internal.github.sync.storeRepositories, {
+      installationId,
+      repositories: repos.map((repo) => repo.full_name).sort(),
+    });
+    return null;
   },
 });
 

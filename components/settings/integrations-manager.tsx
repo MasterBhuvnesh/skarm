@@ -1,9 +1,9 @@
 "use client";
 
 import { useOrganization } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
-import { Loader2, Lock } from "lucide-react";
-import { useState } from "react";
+import { useAction, useMutation, useQuery } from "convex/react";
+import { Loader2, Lock, RefreshCcw } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import {
@@ -24,7 +24,15 @@ import { formatRelativeTime } from "@/components/issue-detail/format";
 import { FigmaIcon } from "@/components/shared/figma-icon";
 import { GithubIcon } from "@/components/shared/github-icon";
 
-function RepositoryList({ repositories }: { repositories: string[] }) {
+function RepositoryList({
+  repositories,
+  onRefresh,
+  refreshing,
+}: {
+  repositories: string[];
+  onRefresh: () => void;
+  refreshing: boolean;
+}) {
   const [filter, setFilter] = useState("");
   const visible = filter
     ? repositories.filter((repo) =>
@@ -35,13 +43,25 @@ function RepositoryList({ repositories }: { repositories: string[] }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
           Repositories
           {repositories.length > 0 && (
-            <span className="ml-1.5 rounded-full bg-muted px-1.5 py-0.5 font-normal tabular-nums">
+            <span className="rounded-full bg-muted px-1.5 py-0.5 font-normal tabular-nums">
               {repositories.length}
             </span>
           )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={refreshing}
+            aria-label="Refresh repositories"
+            title="Refresh the repository list from GitHub"
+            className="text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+          >
+            <RefreshCcw
+              className={`size-3 ${refreshing ? "animate-spin" : ""}`}
+            />
+          </button>
         </span>
         {repositories.length > 8 && (
           <input
@@ -56,7 +76,9 @@ function RepositoryList({ repositories }: { repositories: string[] }) {
       </div>
       {repositories.length === 0 ? (
         <p className="mt-1 text-xs text-muted-foreground">
-          Syncing from GitHub — the list fills in as events arrive.
+          {refreshing
+            ? "Loading repositories from GitHub…"
+            : "No repositories synced yet. Use refresh above, or manage access from your GitHub App installation settings."}
         </p>
       ) : visible.length === 0 ? (
         <p className="mt-2 text-xs text-muted-foreground">
@@ -99,12 +121,38 @@ export function IntegrationsManager() {
   const beginInstall = useMutation(api.integrations.beginInstall);
   const setEnabled = useMutation(api.integrations.setEnabled);
   const disconnect = useMutation(api.integrations.disconnect);
+  const refreshRepositories = useAction(api.github.client.refreshRepositories);
   const [connecting, setConnecting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const healedRef = useRef(false);
 
   const onError = (error: unknown) => {
     setConnecting(false);
     toast.error(error instanceof Error ? error.message : "Something went wrong");
   };
+
+  const connection = data?.connection ?? null;
+  const repoCount = connection?.repositories.length ?? 0;
+
+  const doRefresh = () => {
+    setRefreshing(true);
+    refreshRepositories()
+      .catch(() => toast.error("Failed to refresh repositories"))
+      .finally(() => setRefreshing(false));
+  };
+
+  // Self-heal a connected install whose repo list never arrived (the
+  // installation webhook races the binding on connect and can be dropped):
+  // pull it from the API once.
+  useEffect(() => {
+    if (connection && repoCount === 0 && !healedRef.current) {
+      healedRef.current = true;
+      setRefreshing(true);
+      refreshRepositories()
+        .catch(() => {})
+        .finally(() => setRefreshing(false));
+    }
+  }, [connection, repoCount, refreshRepositories]);
 
   const connect = async () => {
     setConnecting(true);
@@ -116,8 +164,6 @@ export function IntegrationsManager() {
       onError(error);
     }
   };
-
-  const connection = data?.connection ?? null;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 p-6">
@@ -201,7 +247,11 @@ export function IntegrationsManager() {
           <>
             <Separator />
             <div className="flex flex-col gap-3 p-4">
-              <RepositoryList repositories={connection.repositories} />
+              <RepositoryList
+                repositories={connection.repositories}
+                onRefresh={doRefresh}
+                refreshing={refreshing}
+              />
               <p className="text-xs text-muted-foreground">
                 Reference issues as{" "}
                 <code className="rounded bg-muted px-1">ENG-42</code> in a

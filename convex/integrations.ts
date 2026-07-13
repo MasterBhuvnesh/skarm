@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 import {
   internalMutation,
@@ -349,6 +350,12 @@ export const completeSetup = internalMutation({
         installationId: args.installationId,
       });
     }
+
+    // Pull the repo list from the API now — the installation webhook that
+    // carries it races with this mutation and is dropped if it arrives first.
+    await ctx.scheduler.runAfter(0, internal.github.client.syncRepositories, {
+      installationId: args.installationId,
+    });
 
     const org = await ctx.db.get(state.orgId);
     return org?.slug ?? null;
