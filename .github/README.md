@@ -4,7 +4,7 @@
 
 # COHERE
 
-A modern issue tracker for teams that plan, track, and ship together. Multi-tenant workspaces, real-time boards, B2B billing, and an AI agent, built with Next.js 16, Convex, and Clerk.
+A modern issue tracker for teams that plan, track, and ship together. Multi-tenant workspaces, real-time boards, B2B billing, an AI agent, a dependency graph, and two-way GitHub + Figma sync, built with Next.js 16, Convex, and Clerk.
 
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
 [![Convex](https://img.shields.io/badge/Convex-Backend-ff6b35?logo=convex)](https://convex.dev)
@@ -39,15 +39,25 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 - Projects group issues across teams with statuses, leads, target dates, and live progress
 - Cycles are time-boxed sprints per team, auto-numbered with current-cycle tracking
 - Cycle analytics: burndown chart with ideal guideline, velocity across recent cycles, and scope-change tracking (added/removed points), reconstructed from the activity log
+- Dependency graph: a React Flow canvas mapping a project or cycle's issues as nodes with their blocks/related/duplicate relations as directed edges; drag issues in, draw links, auto-arrange by blocking depth, and layouts persist per scope
 - Unlimited teams per organization, each with its own board and cycles
 
-### GITHUB INTEGRATION
+### INTEGRATIONS
 
-- One-click connect via a GitHub App: users pick repositories on GitHub's install screen, no manual webhook setup per workspace
+**GitHub** (GitHub App, per-org OAuth-style install)
+
+- One-click connect: users pick repositories on GitHub's install screen; the repo list is pulled from the API, no manual webhook setup per workspace
 - Projects connect one or more repos (live-fetched picker with Public/Private badges, shows who connected)
 - "Also create this issue on GitHub" at creation; edits, status changes, and attachments mirror to the GitHub twin (merged PR → Done closes it)
+- Two-way sync: editing, closing/reopening, or commenting on the linked GitHub issue reflects back into Cohere; bot echoes are filtered to avoid loops
 - PRs link to issues via `ENG-42` in branch names, titles, or bodies; opened PRs move issues to In Review, merged PRs to Done
 - All automated events appear in the timeline and inbox as a dedicated GitHub system actor, never as a user
+
+**Figma** (OAuth, granular scopes)
+
+- Connect once per workspace; attach designs to issues by pasting a Figma link (or it auto-detects figma.com URLs in descriptions and comments)
+- Live preview: design name, rendered thumbnail, and an "edited Xh ago" freshness stamp fetched via the Figma REST API
+- Post issue comments to the linked design; frame links push a "ENG-42 · Status · Title" resource into Figma Dev Mode that links back and stays in sync
 
 ### AI AGENT (PRO AND ENTERPRISE)
 
@@ -82,9 +92,10 @@ flowchart TB
     Convex -->|"Real-time sync"| Browser
     Clerk[Clerk Auth + Orgs + Billing] -->|"Svix Webhooks"| ConvexHTTP["Convex HTTP /clerk-webhook"]
     ConvexHTTP -->|"Sync users, orgs, members, subscriptions"| Convex
-    GitHub[GitHub App] -->|"HMAC webhooks: installs, PRs"| GHHTTP["Convex HTTP /github-webhook"]
+    GitHub[GitHub App] -->|"HMAC webhooks: installs, PRs, issues"| GHHTTP["Convex HTTP /github-webhook"]
     GHHTTP --> Convex
-    Convex -->|"Issue sync via installation tokens"| GitHub
+    Convex -->|"Issue + repo sync via installation tokens"| GitHub
+    Convex <-->|"OAuth: previews, comments, dev resources"| Figma[Figma REST API]
     Convex -->|"Agent tools + embeddings"| OpenAI[OpenAI]
     Convex -->|"File storage"| Storage[Convex Storage]
     Browser -->|"proxy.ts middleware"| Clerk
@@ -108,6 +119,7 @@ Full setup lives in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md):
 
 - **App setup** — `.env.local`, Clerk (JWT template, billing plans, webhooks), Convex env vars, deployment, and a troubleshooting table
 - **GitHub integration** — creating the GitHub App (webhook + setup URLs, permissions), `GITHUB_APP_SLUG` / `GITHUB_WEBHOOK_SECRET` / `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` (base64) env vars, and how the install → webhook → sync flow works
+- **Figma integration** — creating the Figma OAuth app (redirect URI, granular scopes) and the `FIGMA_CLIENT_ID` / `FIGMA_CLIENT_SECRET` env vars
 
 Once configured: open [http://localhost:3000](http://localhost:3000), sign up, create an organization, and you are in.
 
@@ -131,9 +143,11 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | cycles                   | Sprints per team                 | `teamId`, `number`, `startDate`, `endDate`                             |
 | attachments              | Files on issues                  | `issueId`, `storageId`, `fileName`                                     |
 | issueTemplates           | Templates + recurring schedules  | `teamId`, `titlePrefix`, `priority`, `cadence`, `nextRunAt`            |
-| integrations             | GitHub App connection per org    | `orgId`, `installationId`, `repositories[]`, `enabled`                 |
+| integrations             | GitHub / Figma connection per org | `orgId`, `type`, `installationId`, `repositories[]`, figma tokens     |
 | pullRequests             | PRs linked to issues             | `issueId`, `repo`, `number`, `state`                                   |
 | githubIssues             | Synced GitHub issue twins        | `issueId`, `repo`, `number`, `url`                                     |
+| figmaLinks               | Figma designs attached to issues | `issueId`, `fileKey`, `nodeId`, `thumbnailUrl`, `devResourceId`        |
+| graphLayouts             | Saved dependency-graph positions | `orgId`, `scopeKey`, `positions[]`                                     |
 | issueShares              | Public read-only share links     | `issueId`, `token`, `createdBy`                                        |
 | views                    | Saved filter configurations      | `creatorId`, `filters`, `shared`                                       |
 
@@ -145,11 +159,13 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | `app/(app)/[orgSlug]/`          | The workspace: boards, issues, projects, cycles, AI, settings |
 | `app/onboarding/`               | Create-or-join-organization flow                            |
 | `convex/schema.ts`              | Tables, indexes, search and vector indexes                  |
-| `convex/http.ts`, `convex/webhooks.ts` | Clerk webhook endpoint and sync logic                |
+| `convex/http.ts`, `convex/webhooks.ts` | Clerk + GitHub + Figma webhook/OAuth endpoints and sync |
 | `convex/lib/customFunctions.ts` | `orgQuery` / `orgMutation` wrappers                         |
 | `convex/lib/limits.ts`          | Free-plan limit enforcement                                 |
-| `convex/agent/`                 | AI agent: chat, tools, embeddings, triage, rate limiting    |
-| `components/`                   | UI: shell, board, issues, issue detail, billing, AI         |
+| `convex/agent/`                 | AI agent: chat, drafting, embeddings, triage, rate limiting |
+| `convex/github/`, `convex/figma.ts` | GitHub (transport/sync split) and Figma integration    |
+| `convex/graph.ts`               | Dependency-graph data and saved layouts                     |
+| `components/`                   | UI: shell, board, issues, issue detail, graph, billing, AI  |
 | `lib/plans.ts`                  | Single source of truth for Clerk plan IDs and pricing       |
 | `proxy.ts`                      | Clerk middleware for route protection                       |
 
