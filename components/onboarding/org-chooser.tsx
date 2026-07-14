@@ -1,18 +1,26 @@
 "use client";
 
-import { CreateOrganization, useOrganizationList } from "@clerk/nextjs";
+import {
+  CreateOrganization,
+  useOrganization,
+  useOrganizationList,
+} from "@clerk/nextjs";
 import { Building2, Check, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
 /**
  * Organization chooser for /onboarding. Controlled (via useOrganizationList)
- * rather than the prebuilt <OrganizationList> so that accepting an invite
- * revalidates the membership list in place — the joined org appears
- * immediately instead of only after a full-page refresh (#9). Also
- * revalidates on window focus, for joins that happen in another tab.
+ * rather than the prebuilt <OrganizationList> so that:
+ *  - accepting an invite revalidates the membership list in place — the
+ *    joined org appears immediately, no full-page refresh (#9); and
+ *  - when the user already has an ACTIVE org (e.g. just created one through
+ *    Clerk's sign-up task), we redirect straight into it instead of showing
+ *    the picker, which also fixes the marketing "Open app" → /onboarding
+ *    landing (#8).
+ * Also revalidates on window focus, for joins/creates in another tab.
  */
 export function OrgChooser() {
   const router = useRouter();
@@ -21,11 +29,25 @@ export function OrgChooser() {
       userMemberships: { infinite: true },
       userInvitations: { infinite: true },
     });
+  const { isLoaded: orgLoaded, organization } = useOrganization();
   const [mode, setMode] = useState<"choose" | "create">("choose");
   const [busy, setBusy] = useState<string | null>(null);
+  const redirectedRef = useRef(false);
 
-  // Refresh Clerk's org data when the tab regains focus, so a join completed
-  // elsewhere (e.g. an emailed invite link) shows up without a manual reload.
+  // Already have an active workspace? Go straight into it.
+  useEffect(() => {
+    if (
+      orgLoaded &&
+      organization?.slug &&
+      !redirectedRef.current
+    ) {
+      redirectedRef.current = true;
+      router.replace(`/${organization.slug}`);
+    }
+  }, [orgLoaded, organization, router]);
+
+  // Force-fresh Clerk's org data on mount and when the tab regains focus, so
+  // an org just created/joined (here or in another tab) shows immediately.
   useEffect(() => {
     const refresh = () => {
       if (document.visibilityState === "visible") {
@@ -33,6 +55,7 @@ export function OrgChooser() {
         void userInvitations?.revalidate?.();
       }
     };
+    refresh();
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", refresh);
     return () => {
@@ -41,7 +64,9 @@ export function OrgChooser() {
     };
   }, [userMemberships, userInvitations]);
 
-  if (!isLoaded) {
+  // While loading, or when redirecting into an active org, show a spinner
+  // rather than flashing the picker.
+  if (!isLoaded || !orgLoaded || organization) {
     return (
       <div className="flex items-center justify-center py-10">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
