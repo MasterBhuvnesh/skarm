@@ -1,9 +1,10 @@
-import { OrganizationList } from "@clerk/nextjs";
+import { OrgChooser } from "@/components/onboarding/org-chooser";
 
 /**
  * Org selection / creation. Every user needs an active organization
- * (workspace) before entering the app; Clerk redirects to /:slug after
- * selecting or creating one.
+ * (workspace) before entering the app. Uses a controlled chooser
+ * (components/onboarding/org-chooser.tsx) so joining an org via an
+ * invitation updates the list immediately, without a page refresh (#9).
  */
 export default function OnboardingPage() {
   return (
@@ -16,11 +17,7 @@ export default function OnboardingPage() {
           Select an organization or create a new one to get started.
         </p>
       </div>
-      <OrganizationList
-        hidePersonal
-        afterSelectOrganizationUrl="/:slug"
-        afterCreateOrganizationUrl="/:slug"
-      />
+      <OrgChooser />
     </main>
   );
 }
