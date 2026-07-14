@@ -1,7 +1,7 @@
 "use client";
 
 import { CreateOrganization, useOrganizationList } from "@clerk/nextjs";
-import { Building2, Check, Loader2, Plus } from "lucide-react";
+import { Building2, Check, ChevronRight, Loader2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -102,95 +102,116 @@ export function OrgChooser() {
   const hasNothing = memberships.length === 0 && invitations.length === 0;
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-5">
+    <div className="flex w-full max-w-sm flex-col gap-6">
       {memberships.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium text-muted-foreground">
+          <h2 className="px-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
             Your workspaces
           </h2>
-          {memberships.map((mem) => (
-            <button
-              key={mem.id}
-              disabled={busy !== null}
-              onClick={() =>
-                void enter(mem.organization.id, mem.organization.slug)
-              }
-              className="flex items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent disabled:opacity-60"
-            >
-              <OrgAvatar
-                name={mem.organization.name}
-                imageUrl={mem.organization.imageUrl}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {mem.organization.name}
+          <div className="flex flex-col gap-1.5">
+            {memberships.map((mem) => (
+              <button
+                key={mem.id}
+                disabled={busy !== null}
+                onClick={() =>
+                  void enter(mem.organization.id, mem.organization.slug)
+                }
+                className="group flex items-center gap-3 rounded-xl border bg-card/40 p-3 text-left transition-all hover:border-primary/40 hover:bg-accent hover:shadow-sm disabled:pointer-events-none disabled:opacity-60"
+              >
+                <OrgAvatar
+                  name={mem.organization.name}
+                  imageUrl={mem.organization.imageUrl}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {mem.organization.name}
+                  </span>
+                  <RoleLabel admin={mem.role === "org:admin"} />
                 </span>
-                <span className="text-xs text-muted-foreground capitalize">
-                  {mem.role === "org:admin" ? "Admin" : "Member"}
-                </span>
-              </span>
-              {busy === mem.organization.id && (
-                <Loader2 className="size-4 animate-spin text-muted-foreground" />
-              )}
-            </button>
-          ))}
+                {busy === mem.organization.id ? (
+                  <Loader2 className="size-4 shrink-0 animate-spin text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground/40 transition-all group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+                )}
+              </button>
+            ))}
+          </div>
         </section>
       )}
 
       {invitations.length > 0 && (
         <section className="flex flex-col gap-2">
-          <h2 className="text-xs font-medium text-muted-foreground">
+          <h2 className="px-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
             Invitations
           </h2>
-          {invitations.map((inv) => (
-            <div
-              key={inv.id}
-              className="flex items-center gap-3 rounded-lg border p-3"
-            >
-              <OrgAvatar
-                name={inv.publicOrganizationData.name}
-                imageUrl={inv.publicOrganizationData.imageUrl}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
-                  {inv.publicOrganizationData.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  Invited as {inv.role === "org:admin" ? "admin" : "member"}
-                </span>
-              </span>
-              <Button
-                size="sm"
-                disabled={busy !== null}
-                onClick={() => void join(inv)}
+          <div className="flex flex-col gap-1.5">
+            {invitations.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/[0.06] p-3"
               >
-                {busy === inv.id ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Check className="size-3.5" />
-                )}
-                Join
-              </Button>
-            </div>
-          ))}
+                <OrgAvatar
+                  name={inv.publicOrganizationData.name}
+                  imageUrl={inv.publicOrganizationData.imageUrl}
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {inv.publicOrganizationData.name}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    Invited as {inv.role === "org:admin" ? "admin" : "member"}
+                  </span>
+                </span>
+                <Button
+                  size="sm"
+                  disabled={busy !== null}
+                  onClick={() => void join(inv)}
+                >
+                  {busy === inv.id ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Check className="size-3.5" />
+                  )}
+                  Join
+                </Button>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
       {hasNothing && (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed p-6 text-center">
-          <Building2 className="size-6 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed p-8 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-muted">
+            <Building2 className="size-5 text-muted-foreground" />
+          </span>
+          <p className="max-w-[16rem] text-sm text-muted-foreground">
             You&apos;re not in any workspace yet. Create one to get started, or
             ask a teammate to invite you.
           </p>
         </div>
       )}
 
-      <Button variant="outline" onClick={() => setMode("create")}>
+      <Button
+        variant="outline"
+        className="h-11 border-dashed"
+        onClick={() => setMode("create")}
+      >
         <Plus className="size-4" />
         Create a workspace
       </Button>
     </div>
+  );
+}
+
+function RoleLabel({ admin }: { admin: boolean }) {
+  return (
+    <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+      <span
+        className={`size-1.5 rounded-full ${admin ? "bg-amber-500" : "bg-muted-foreground/50"}`}
+      />
+      {admin ? "Admin" : "Member"}
+    </span>
   );
 }
 
@@ -207,12 +228,12 @@ function OrgAvatar({
       <img
         src={imageUrl}
         alt=""
-        className="size-8 shrink-0 rounded-md object-cover"
+        className="size-9 shrink-0 rounded-lg object-cover ring-1 ring-border"
       />
     );
   }
   return (
-    <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs font-semibold text-primary">
+    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-sm font-semibold text-primary ring-1 ring-border">
       {name.slice(0, 1).toUpperCase()}
     </span>
   );
