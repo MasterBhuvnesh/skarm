@@ -6,10 +6,11 @@ import { HeroShowcase } from "@/components/marketing/hero-showcase";
 export function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Faint grid behind the hero copy, fading out before the showcase. */}
+      {/* Faint grid behind the hero copy: fully visible at the center, then
+          gradually thinning out to transparent on every side. */}
       <div
         aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_80%_65%_at_50%_0%,black_35%,transparent)]"
+        className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_55%_50%_at_50%_42%,black_25%,rgba(0,0,0,0.45)_55%,transparent_78%)]"
       />
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-10 text-center md:pt-14">
         <Link
