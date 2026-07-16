@@ -14,7 +14,7 @@ export function MockFrame({
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-muted/40 p-1.5 shadow-2xl shadow-black/10 dark:bg-white/[0.04] dark:shadow-black/50",
+        "rounded-2xl border bg-muted/40 p-1.5 shadow-2xl shadow-black/10 dark:bg-white/4 dark:shadow-black/50",
         className
       )}
     >
