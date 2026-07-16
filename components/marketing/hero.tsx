@@ -12,7 +12,7 @@ export function Hero() {
           copy area, so the ellipse fade lands inside the visible region). */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 -z-10 h-[30rem] bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_55%_58%_at_50%_48%,black_22%,rgba(0,0,0,0.45)_55%,transparent_80%)] md:h-[34rem]"
+        className="absolute inset-x-0 top-0 -z-10 h-120 bg-[linear-gradient(to_right,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklab,var(--border),transparent_45%)_1px,transparent_1px)] bg-size-[64px_64px] mask-[radial-gradient(ellipse_55%_58%_at_50%_48%,black_22%,rgba(0,0,0,0.45)_55%,transparent_80%)] md:h-[34rem]"
       />
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-10 text-center md:pt-14">
         <Link
@@ -53,6 +53,7 @@ export function Hero() {
         </div>
         <p className="mt-4 text-[13px] text-muted-foreground">
           Free for teams of 3 · No credit card required
+       
         </p>
       </div>
 
