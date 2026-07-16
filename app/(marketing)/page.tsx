@@ -22,9 +22,13 @@ export default function LandingPage() {
       <main>
         <Hero />
         <LogoCloud />
-        <FeaturesIssues />
+        <div id="features" className="scroll-mt-16">
+          <FeaturesIssues />
+        </div>
         <FeaturesBoard />
-        <FeaturesAi />
+        <div id="ai" className="scroll-mt-16">
+          <FeaturesAi />
+        </div>
         <FeaturesKeyboard />
         <FeatureGrid />
         <Testimonials />

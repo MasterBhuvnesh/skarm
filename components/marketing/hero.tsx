@@ -1,7 +1,6 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Kbd } from "@/components/marketing/kbd";
 import { MockApp } from "@/components/marketing/mock-app";
 
 export function Hero() {
@@ -19,40 +18,45 @@ export function Hero() {
 
       <div className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 pt-20 text-center md:pt-28">
         <Link
-          href="/pricing"
-          className="group flex items-center gap-2 rounded-full border bg-background/60 py-1 pr-3 pl-1.5 text-xs text-muted-foreground backdrop-blur transition-colors hover:border-ring/60 hover:text-foreground"
+          href="/#ai"
+          className="group flex items-center gap-2 rounded-full border bg-background/60 py-1 pr-1 pl-3 text-xs backdrop-blur transition-colors hover:border-ring/60"
         >
-          <span className="flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
-            <Sparkles className="size-2.5" />
-            New
+          <span className="flex items-center gap-1.5 text-muted-foreground transition-colors group-hover:text-foreground">
+            <Sparkles className="size-3 text-primary" />
+            Introducing the AI agent
           </span>
-          The AI agent joins your team on Pro
-          <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+          <span className="flex items-center gap-0.5 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground transition-colors group-hover:bg-accent">
+            Read more
+            <ArrowUpRight className="size-3" />
+          </span>
         </Link>
 
         <h1 className="mt-8 max-w-3xl text-5xl font-semibold tracking-tighter text-balance md:text-7xl">
           Ship at the speed of thought
         </h1>
         <p className="mt-6 max-w-xl text-base text-balance text-muted-foreground md:text-lg">
-          Cohere helps product teams plan, track, and ship faster in a keyboard-first workspace, powered by AI.
+          Cohere is the AI-native issue tracker for modern teams — plan, track,
+          and ship faster in a keyboard-first workspace.
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-          <Button size="lg" className="h-10 px-5" asChild>
+          <Button size="lg" className="h-11 rounded-full px-6" asChild>
             <Link href="/sign-up">
-              Start building for free
+              Start for free
               <ArrowRight className="size-4" />
             </Link>
           </Button>
-          <Button size="lg" variant="outline" className="h-10 px-5" asChild>
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-11 rounded-full px-6"
+            asChild
+          >
             <Link href="/pricing">View pricing</Link>
           </Button>
         </div>
-        <p className="mt-4 flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
-          Free for teams of 3 · No credit card · Press
-          <Kbd>⌘</Kbd>
-          <Kbd>K</Kbd>
-          anywhere
+        <p className="mt-4 text-[13px] text-muted-foreground">
+          Free for teams of 3 · No credit card required
         </p>
       </div>
 
