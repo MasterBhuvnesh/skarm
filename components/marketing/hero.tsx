@@ -21,7 +21,7 @@ export function Hero() {
           </span>
         </Link>
 
-        <h1 className="mt-8 max-w-3xl text-5xl font-semibold tracking-tighter text-balance md:text-7xl">
+        <h1 className="mt-8 max-w-3xl text-5xl font-medium tracking-tighter text-balance md:text-7xl">
           Ship at the speed of thought
         </h1>
         <p className="mt-6 max-w-xl text-base text-balance text-muted-foreground md:text-lg">
