@@ -44,15 +44,15 @@ export default function MarketingLayout({
 
           <div className="flex items-center gap-1.5">
             <Show when="signed-out">
-              <Button variant="ghost" size="sm" asChild>
+              <Button variant="outline" size="sm" className="rounded-lg" asChild>
                 <Link href="/sign-in">Log in</Link>
               </Button>
-              <Button size="sm" className="rounded-full px-4" asChild>
+              <Button size="sm" className="rounded-lg px-4" asChild>
                 <Link href="/sign-up">Sign up</Link>
               </Button>
             </Show>
             <Show when="signed-in">
-              <Button size="sm" className="rounded-full px-4" asChild>
+              <Button size="sm" className="rounded-lg px-4" asChild>
                 <Link href="/onboarding">Open app</Link>
               </Button>
             </Show>
