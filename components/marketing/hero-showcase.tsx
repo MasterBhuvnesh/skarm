@@ -45,11 +45,11 @@ export function HeroShowcase() {
         } as CSSProperties
       }
     >
-      <div className="relative bg-[var(--panel)] px-6 pt-12 pb-12">
+      <div className="relative bg-[var(--panel)] px-3 pt-12 pb-6 sm:px-6 sm:pb-12">
         {/* Tab bar, rising above the panel's top edge, centered */}
         <div className="absolute top-0 left-1/2 flex -translate-x-1/2 -translate-y-full items-end">
           <span aria-hidden style={notch("left")} />
-          <div className="flex items-center gap-1 rounded-t-2xl bg-[var(--panel)] px-1.5 pt-1.5">
+          <div className="flex items-center gap-0.5 rounded-t-xl bg-[var(--panel)] px-1 pt-1 sm:gap-1 sm:rounded-t-2xl sm:px-1.5 sm:pt-1.5">
             {TABS.map((tab) => {
               const isActive = tab.id === active;
               return (
@@ -58,20 +58,20 @@ export function HeroShowcase() {
                   type="button"
                   onClick={() => setActive(tab.id)}
                   className={cn(
-                    "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-all",
+                    "flex items-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-medium whitespace-nowrap transition-all sm:gap-2 sm:rounded-xl sm:px-3 sm:py-2 sm:text-sm",
                     isActive
                       ? "bg-background text-foreground shadow-sm ring-1 ring-border"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   <span
-                    className="flex size-5 shrink-0 items-center justify-center rounded-md"
+                    className="flex size-4 shrink-0 items-center justify-center rounded sm:size-5 sm:rounded-md"
                     style={{
                       backgroundColor: `${tab.color}22`,
                       color: tab.color,
                     }}
                   >
-                    <tab.icon className="size-3" />
+                    <tab.icon className="size-2.5 sm:size-3" />
                   </span>
                   {tab.label}
                 </button>
