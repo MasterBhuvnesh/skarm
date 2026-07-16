@@ -1,6 +1,7 @@
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { FeatureTabs } from "@/components/marketing/feature-tabs";
 import { MockApp } from "@/components/marketing/mock-app";
 
 export function Hero() {
@@ -39,7 +40,7 @@ export function Hero() {
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
-          <Button size="lg" className="h-11 rounded-full px-6" asChild>
+          <Button size="lg" className="h-11 rounded-lg px-6" asChild>
             <Link href="/sign-up">
               Start for free
               <ArrowRight className="size-4" />
@@ -48,7 +49,7 @@ export function Hero() {
           <Button
             size="lg"
             variant="outline"
-            className="h-11 rounded-full px-6"
+            className="h-11 rounded-lg px-6"
             asChild
           >
             <Link href="/pricing">View pricing</Link>
@@ -59,13 +60,16 @@ export function Hero() {
         </p>
       </div>
 
-      <div className="relative mx-auto mt-14 w-full max-w-6xl px-6 md:mt-20">
-        <MockApp />
-        {/* Fade the bottom of the screenshot into the next section. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 -bottom-px h-28 bg-linear-to-t from-background to-transparent"
-        />
+      <div className="mx-auto mt-12 flex w-full max-w-6xl flex-col items-center px-6 md:mt-16">
+        <FeatureTabs />
+        <div className="relative mt-6 w-full md:mt-8">
+          <MockApp />
+          {/* Fade the bottom of the screenshot into the next section. */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 -bottom-px h-28 bg-linear-to-t from-background to-transparent"
+          />
+        </div>
       </div>
     </section>
   );
