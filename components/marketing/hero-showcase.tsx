@@ -45,11 +45,11 @@ export function HeroShowcase() {
         } as CSSProperties
       }
     >
-      <div className="relative bg-[var(--panel)] px-3 pt-12 pb-6 sm:px-6 sm:pb-12">
+      <div className="relative bg-(--panel) px-3 pt-12 pb-6 sm:px-6 sm:pb-12">
         {/* Tab bar, rising above the panel's top edge, centered */}
         <div className="absolute top-0 left-1/2 flex -translate-x-1/2 -translate-y-full items-end">
           <span aria-hidden style={notch("left")} />
-          <div className="flex items-center gap-0.5 rounded-t-xl bg-[var(--panel)] px-1 pt-1 sm:gap-1 sm:rounded-t-2xl sm:px-1.5 sm:pt-1.5">
+          <div className="flex items-center gap-0.5 rounded-t-xl bg-(--panel) px-1 pt-1 sm:gap-1 sm:rounded-t-2xl sm:px-1.5 sm:pt-1.5">
             {TABS.map((tab) => {
               const isActive = tab.id === active;
               return (
