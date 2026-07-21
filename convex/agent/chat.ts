@@ -249,7 +249,7 @@ export const streamResponse = internalAction({
       await saveMessage(ctx, components.agent, {
         threadId: args.threadId,
         userId: threadUserKey(args.orgId, args.userId),
-        agentName: "Cohere",
+        agentName: "Skarm",
         message: { role: "assistant", content: reason },
       });
     }

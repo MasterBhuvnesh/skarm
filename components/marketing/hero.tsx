@@ -32,7 +32,7 @@ export function Hero() {
           Ship at the speed of thought
         </h1>
         <p className="mt-6 max-w-xl text-base text-balance text-muted-foreground md:text-lg">
-          Cohere helps product teams plan, track, and ship faster in a keyboard-first workspace, powered by AI.
+          Skarm helps product teams plan, track, and ship faster in a keyboard-first workspace, powered by AI.
         </p>
 
         <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">

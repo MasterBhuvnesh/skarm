@@ -30,7 +30,7 @@
 Extensions of what's already built:
 
 - [ ] Automations builder: node-canvas "when X → if Y → do Z" flows composed by users (React Flow is installed; triggers/actions exist as primitives)
-- [x] Two-way GitHub sync: closing/renaming/commenting on GitHub reflects back into Cohere via issues + issue_comment webhook events
+- [x] Two-way GitHub sync: closing/renaming/commenting on GitHub reflects back into Skarm via issues + issue_comment webhook events
 - [ ] Dependency graph upgrades: critical-path highlighting, circular-dependency warnings, filter by assignee
 - [ ] Email notifications: daily digest / instant mention emails via the Convex Resend component
 - [ ] Graph filter and grouping by team or assignee

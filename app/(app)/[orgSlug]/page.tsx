@@ -55,7 +55,7 @@ export default function WorkspaceHomePage() {
   if (teams.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
-        <h2 className="text-lg font-medium">Welcome to Cohere</h2>
+        <h2 className="text-lg font-medium">Welcome to Skarm</h2>
         <p className="max-w-sm text-sm text-muted-foreground">
           Create your first team from the sidebar to start tracking issues.
         </p>

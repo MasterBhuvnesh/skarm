@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { statusLabel } from "@/components/shared/issue-meta";
 
 /** Link-preview card for shared issues (Slack/Twitter/iMessage unfurls). */
-export const alt = "Shared issue on Cohere";
+export const alt = "Shared issue on Skarm";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -62,7 +62,7 @@ export default async function OpengraphImage({
           <div style={{ fontSize: 64, fontWeight: 700 }}>Shared issue</div>
         )}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ fontSize: 36, fontWeight: 700 }}>Cohere</div>
+          <div style={{ fontSize: 36, fontWeight: 700 }}>Skarm</div>
           <div style={{ fontSize: 30, color: "#a1a1a1" }}>
             {issue ? `Shared from ${issue.orgName}` : "The AI-native issue tracker"}
           </div>

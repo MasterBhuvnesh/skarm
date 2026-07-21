@@ -255,7 +255,7 @@ export default defineSchema({
     .index("by_issue", ["issueId"])
     .index("by_org_repo_number", ["orgId", "repo", "number"]),
 
-  /** GitHub comments mirroring Cohere attachments, so removal can delete them. */
+  /** GitHub comments mirroring Skarm attachments, so removal can delete them. */
   githubAttachmentComments: defineTable({
     orgId: v.id("organizations"),
     attachmentId: v.id("attachments"),
@@ -286,7 +286,7 @@ export default defineSchema({
     .index("by_issue", ["issueId"])
     .index("by_token", ["token"]),
 
-  /** Cohere issue ↔ GitHub issue sync links (created by the sync layer). */
+  /** Skarm issue ↔ GitHub issue sync links (created by the sync layer). */
   githubIssues: defineTable({
     orgId: v.id("organizations"),
     issueId: v.id("issues"),

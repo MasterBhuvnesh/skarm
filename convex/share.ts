@@ -124,7 +124,7 @@ export const getByToken = query({
       labels,
       createdAt: issue._creationTime,
       teamName: team?.name ?? "Team",
-      orgName: org?.name ?? "a Cohere workspace",
+      orgName: org?.name ?? "a Skarm workspace",
     };
   },
 });

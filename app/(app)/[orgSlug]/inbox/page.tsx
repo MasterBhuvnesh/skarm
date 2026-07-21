@@ -85,7 +85,7 @@ export default function InboxPage() {
   const notifications = useQuery(api.notifications.list);
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
-  const [tab, setTab] = useState("all");
+  const [tab, setTab] = useState("mention");
 
   const unread = notifications?.filter((n) => !n.read).length ?? 0;
   const activeTab = TABS.find((t) => t.value === tab) ?? TABS[0];

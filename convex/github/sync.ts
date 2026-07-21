@@ -13,7 +13,7 @@ import { createNotification } from "../notifications";
 
 /**
  * Data half of the GitHub sync layer: everything that reads or writes the
- * Cohere database on behalf of GitHub automations. All timeline entries
+ * Skarm database on behalf of GitHub automations. All timeline entries
  * written here use the `github` system actor so automated events are
  * clearly distinguished from user actions.
  *
@@ -262,10 +262,12 @@ export const recordSyncFailure = internalMutation({
 });
 
 /** Our own sync footer, stripped from bodies that come back from GitHub. */
-const SYNC_FOOTER = /\n*---\n_Synced from Cohere issue \*\*.+?\*\*\._\s*$/;
+// Matches both current (Skarm) and pre-rename (Cohere) footers — GitHub
+// issues created before the rebrand still carry the old text.
+const SYNC_FOOTER = /\n*---\n_Synced from (?:Skarm|Cohere) issue \*\*.+?\*\*\._\s*$/;
 
 /**
- * GitHub → Cohere: apply a change made on the linked GitHub issue. Bot
+ * GitHub → Skarm: apply a change made on the linked GitHub issue. Bot
  * events are filtered in http.ts, so by the time we're here a human edited,
  * closed, reopened, or commented on GitHub. All writes use the github
  * system actor and never schedule an outbound push (no echo loops).
@@ -417,7 +419,7 @@ export const applyGithubIssueEvent = internalMutation({
   },
 });
 
-/** GitHub issues linked to a Cohere issue, for the issue-detail panel. */
+/** GitHub issues linked to a Skarm issue, for the issue-detail panel. */
 export const linksByIssue = orgQuery({
   args: { issueId: v.id("issues") },
   returns: v.array(

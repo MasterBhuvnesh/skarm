@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- App-tile variant: "C." knocked out in white on brand indigo. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6a76e0" />
+      <stop offset="1" stop-color="#4f5ac4" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#bg)" />
+  <g transform="translate(256 256) scale(0.72) translate(-256 -256)">
+    <path
+      d="M 395.8 188.8 A 192 192 0 1 0 395.8 323.2 L 265.1 323.2 A 83.2 83.2 0 1 1 265.1 188.8 Z"
+      fill="#ffffff"
+    />
+    <circle cx="446.4" cy="400" r="48" fill="#ffffff" />
+  </g>
+</svg>

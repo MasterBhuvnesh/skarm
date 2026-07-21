@@ -53,7 +53,7 @@ export function MockAiChat({ className }: { className?: string }) {
                 <span className="font-medium text-foreground">
                   At risk (2)
                 </span>{" "}
-                — ENG-147 Cohere index migration has no reviewer; ENG-146 is
+                — ENG-147 Skarm index migration has no reviewer; ENG-146 is
                 blocked on a data backfill.
               </p>
             </div>
@@ -63,7 +63,7 @@ export function MockAiChat({ className }: { className?: string }) {
                 ENG-151
               </span>
               <span className="truncate text-xs font-medium">
-                Assign reviewer for Cohere index migration
+                Assign reviewer for Skarm index migration
               </span>
               <span className="ml-auto shrink-0 rounded border px-1 text-[9px] text-muted-foreground">
                 filed by Agent

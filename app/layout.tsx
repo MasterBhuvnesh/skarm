@@ -18,14 +18,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Cohere - Ship at the Speed of Thought",
-    template: "%s · Cohere",
+    default: "Skarm - Ship at the Speed of Thought",
+    template: "%s · Skarm",
   },
   description:
-    "Cohere is the AI-native issue tracker for modern teams. Plan, track, and ship faster with keyboard-first workflows and intelligent automation.",
+    "Skarm is the AI-native issue tracker for modern teams. Plan, track, and ship faster with keyboard-first workflows and intelligent automation.",
   openGraph: {
     type: "website",
-    siteName: "Cohere",
+    siteName: "Skarm",
     url: SITE_URL,
   },
   twitter: {

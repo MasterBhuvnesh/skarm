@@ -151,9 +151,9 @@ function EmptyState({
           <Sparkles className="size-5 text-primary" />
         </div>
         <div className="flex flex-col gap-1">
-          <h2 className="text-base font-semibold">Ask Cohere</h2>
+          <h2 className="text-base font-semibold">Ask Skarm</h2>
           <p className="text-sm text-muted-foreground">
-            Cohere knows your teams, issues, projects and cycles - and can
+            Skarm knows your teams, issues, projects and cycles - and can
             create or update issues for you.
           </p>
         </div>

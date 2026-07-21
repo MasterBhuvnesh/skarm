@@ -31,9 +31,9 @@ export function AiUpgradeCta() {
           <Bot className="size-6 text-primary" />
         </div>
         <div className="flex flex-col gap-1.5">
-          <h2 className="text-lg font-semibold">Meet Cohere, your AI agent</h2>
+          <h2 className="text-lg font-semibold">Meet Skarm, your AI agent</h2>
           <p className="text-sm text-muted-foreground">
-            Cohere works inside your workspace - triaging, reporting and
+            Skarm works inside your workspace - triaging, reporting and
             filing issues for you. Available on Pro and Enterprise plans.
           </p>
         </div>

@@ -406,7 +406,7 @@ function devResourceName(
 
 /**
  * Fill in a link's name, thumbnail, and freshness; for frame links, also
- * push a Dev Mode resource pointing back at the Cohere issue.
+ * push a Dev Mode resource pointing back at the Skarm issue.
  */
 export const fetchPreview = internalAction({
   args: { linkId: v.id("figmaLinks") },
@@ -521,7 +521,7 @@ export const pushComment = internalAction({
     }
     try {
       const token = await ensureToken(ctx, context);
-      const message = `${args.authorName} via Cohere ${context.identifier}: ${args.body}`;
+      const message = `${args.authorName} via Skarm ${context.identifier}: ${args.body}`;
       for (const link of context.links) {
         try {
           await figmaFetch(

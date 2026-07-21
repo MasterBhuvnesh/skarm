@@ -30,7 +30,7 @@ export async function generateMetadata({
     title: `${issue.identifier} · ${issue.title}`,
     description:
       issue.description?.slice(0, 150) ||
-      `An issue shared from ${issue.orgName} on Cohere.`,
+      `An issue shared from ${issue.orgName} on Skarm.`,
   };
 }
 
@@ -55,7 +55,7 @@ export default async function SharedIssuePage({
           href="/"
           className="mt-2 text-sm underline underline-offset-4 hover:text-foreground"
         >
-          What is Cohere?
+          What is Skarm?
         </Link>
       </div>
     );

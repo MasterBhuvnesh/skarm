@@ -1,6 +1,6 @@
-# Cohere — Agent Guide
+# Skarm — Agent Guide
 
-Cohere is a Linear clone: a B2B multi-tenant SaaS built with **Next.js 16 (App Router) + Convex + Clerk (auth AND billing) + shadcn/ui + Tailwind 4 + pnpm**.
+Skarm is a Linear clone: a B2B multi-tenant SaaS built with **Next.js 16 (App Router) + Convex + Clerk (auth AND billing) + shadcn/ui + Tailwind 4 + pnpm**.
 
 This repo is built **foundation-first, then in parallel tracks**. Each track is developed by an agent in its own git worktree/branch. This file is the contract that keeps parallel work merge-safe.
 

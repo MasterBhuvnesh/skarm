@@ -22,6 +22,10 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentBody } from "@/components/issue-detail/comment-body";
+import {
+  REACTION_ICONS,
+  reactionKey,
+} from "@/components/issue-detail/reaction-icons";
 import { CommentComposer } from "@/components/issue-detail/comment-composer";
 import { formatRelativeTime } from "@/components/issue-detail/format";
 import {
@@ -60,6 +64,19 @@ const RELATION_ADDED_PHRASES: Record<string, string> = {
 
 /** Emoji offered in the reaction picker. */
 const REACTION_EMOJIS = ["👍", "❤️", "😄", "🎉", "👀", "🚀"];
+
+/** Freehand Duotone icon for a reaction, falling back to the raw emoji
+    for values outside the fixed set (older data, future additions). */
+function ReactionGlyph({
+  emoji,
+  className,
+}: {
+  emoji: string;
+  className: string;
+}) {
+  const Icon = REACTION_ICONS[reactionKey(emoji)];
+  return Icon ? <Icon className={className} /> : <span>{emoji}</span>;
+}
 
 function Emphasis({ children }: { children: ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>;
@@ -505,13 +522,15 @@ function ReactionRow({
           title={reaction.names.join(", ")}
           onClick={() => react(reaction.emoji)}
           className={cn(
+            // Filled neutral chip so full-colour emoji (e.g. the near-white
+            // 👀) keep contrast on both the light and dark comment surface.
             "flex h-6 items-center gap-1 rounded-full border px-2 text-xs transition-colors",
             reaction.reactedByMe
-              ? "bg-primary/10 ring-1 ring-primary/30"
-              : "hover:bg-accent"
+              ? "border-primary/30 bg-primary/15"
+              : "bg-muted hover:bg-muted/70"
           )}
         >
-          <span>{reaction.emoji}</span>
+          <ReactionGlyph emoji={reaction.emoji} className="size-3.5" />
           <span className="text-muted-foreground">{reaction.count}</span>
         </button>
       ))}
@@ -535,9 +554,10 @@ function ReactionRow({
                 react(emoji);
                 setPickerOpen(false);
               }}
-              className="flex size-8 items-center justify-center rounded-md text-base hover:bg-accent"
+              className="flex size-8 items-center justify-center rounded-md bg-muted/40 transition-colors hover:bg-accent"
+              aria-label={`React with ${emoji}`}
             >
-              {emoji}
+              <ReactionGlyph emoji={emoji} className="size-5" />
             </button>
           ))}
         </PopoverContent>

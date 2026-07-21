@@ -157,7 +157,7 @@ http.route({
       return new Response(null, { status: 200 });
     }
 
-    // GitHub → Cohere issue sync. Bot senders are skipped: our own PATCHes
+    // GitHub → Skarm issue sync. Bot senders are skipped: our own PATCHes
     // and attachment comments echo back as webhook events from the app bot,
     // and reacting to them would loop.
     if (eventType === "issues" || eventType === "issue_comment") {

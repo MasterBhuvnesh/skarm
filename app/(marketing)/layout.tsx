@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Show } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { SkarmLogo } from "@/components/shared/skarm-logo";
 
 /**
  * Marketing layout — Track F owns the landing page content, Track E owns
@@ -26,8 +26,8 @@ export default function MarketingLayout({
             href="/"
             className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
           >
-            <Image src="/cohere.png" alt="" width={26} height={26} />
-            Cohere
+            <SkarmLogo size={26} />
+            Skarm
           </Link>
 
           <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 md:flex">

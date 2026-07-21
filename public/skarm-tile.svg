@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Skarm app tile: white petal pinwheel on soft indigo, glow behind the
+       core like the reference's blobby icon. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6a76e0" />
+      <stop offset="1" stop-color="#4f5ac4" />
+    </linearGradient>
+    <radialGradient id="glow" cx="256" cy="256" r="230" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35" />
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.08" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="115" fill="url(#bg)" />
+  <rect width="512" height="512" rx="115" fill="url(#glow)" />
+  <g fill="#ffffff" transform="rotate(-15 256 256)">
+    <path d="M 256 233.6 C 227.2 179.2, 211.2 147.2, 214.4 110.4 A 52.8 52.8 0 0 1 318.4 121.6 C 312 156.8, 284.8 188.8, 256 233.6 Z" />
+    <path d="M 256 233.6 C 227.2 179.2, 211.2 147.2, 214.4 110.4 A 52.8 52.8 0 0 1 318.4 121.6 C 312 156.8, 284.8 188.8, 256 233.6 Z" transform="rotate(72 256 256)" />
+    <path d="M 256 233.6 C 227.2 179.2, 211.2 147.2, 214.4 110.4 A 52.8 52.8 0 0 1 318.4 121.6 C 312 156.8, 284.8 188.8, 256 233.6 Z" transform="rotate(144 256 256)" />
+    <path d="M 256 233.6 C 227.2 179.2, 211.2 147.2, 214.4 110.4 A 52.8 52.8 0 0 1 318.4 121.6 C 312 156.8, 284.8 188.8, 256 233.6 Z" transform="rotate(216 256 256)" />
+    <path d="M 256 233.6 C 227.2 179.2, 211.2 147.2, 214.4 110.4 A 52.8 52.8 0 0 1 318.4 121.6 C 312 156.8, 284.8 188.8, 256 233.6 Z" transform="rotate(288 256 256)" />
+  </g>
+</svg>

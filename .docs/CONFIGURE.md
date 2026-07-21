@@ -1,6 +1,6 @@
-# Configuring Cohere
+# Configuring Skarm
 
-Everything needed to get a Cohere deployment running: app setup (Clerk +
+Everything needed to get a Skarm deployment running: app setup (Clerk +
 Convex + env vars) first, then the GitHub integration.
 
 ## App setup
@@ -102,7 +102,7 @@ Runs Next.js and Convex in parallel. Open [http://localhost:3000](http://localho
 
 ## GitHub integration
 
-Cohere's GitHub integration is a [GitHub App](https://docs.github.com/en/apps).
+Skarm's GitHub integration is a [GitHub App](https://docs.github.com/en/apps).
 Creating the app is a one-time step per deployment; after that, every
 workspace connects itself with one click (Settings → Integrations → Connect)
 and picks which repositories to grant.
@@ -117,7 +117,7 @@ not `.cloud`).
 
 | Field | Value |
 | --- | --- |
-| GitHub App name | `Cohere` (any unique name works — only the slug matters) |
+| GitHub App name | `Skarm` (any unique name works — only the slug matters) |
 | Description | see below |
 | Homepage URL | your app URL, e.g. `http://localhost:3000` |
 | Callback URL | leave empty (no OAuth identity is requested) |
@@ -134,9 +134,9 @@ not `.cloud`).
 
 Suggested description:
 
-> Cohere is an AI-native issue tracker for teams that plan, track, and ship
-> together. This app links pull requests to Cohere issues: mention an issue
-> key like ENG-42 in a branch name, PR title, or description and Cohere
+> Skarm is an AI-native issue tracker for teams that plan, track, and ship
+> together. This app links pull requests to Skarm issues: mention an issue
+> key like ENG-42 in a branch name, PR title, or description and Skarm
 > attaches the PR to that issue and keeps its status in sync — opened PRs
 > move issues to In Review, merged PRs mark them Done.
 
@@ -146,12 +146,12 @@ Generate a webhook secret:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-For GitHub **Issues** sync (creating issues in repos from Cohere), also add
+For GitHub **Issues** sync (creating issues in repos from Skarm), also add
 under Repository permissions: **Issues: Read and write**. Then, on the app
 page after creation, note the **App ID** and generate a **private key**
 ("Private keys" → Generate) — a `.pem` file downloads.
 
-For **two-way sync** (GitHub → Cohere: edits, close/reopen, and comments on
+For **two-way sync** (GitHub → Skarm: edits, close/reopen, and comments on
 the linked GitHub issue reflected back), additionally subscribe to the
 **Issues** and **Issue comment** events. Events from bots (including the
 app itself) are ignored to prevent echo loops.
@@ -160,14 +160,14 @@ app itself) are ignored to prevent echo loops.
 
 ## Figma integration
 
-Lets members paste Figma file/frame links on issues; Cohere fetches the
+Lets members paste Figma file/frame links on issues; Skarm fetches the
 design's name and a rendered thumbnail via the Figma REST API.
 
 1. Create an OAuth app at [figma.com/developers/apps](https://www.figma.com/developers/apps)
    with redirect URI `<convex-site-url>/figma-callback`, and under the app's
    **OAuth scopes** enable `file_content:read`, `file_metadata:read`,
    `file_comments:write`, `file_versions:read`, and
-   `file_dev_resources:write` (Cohere requests exactly these). Changing
+   `file_dev_resources:write` (Skarm requests exactly these). Changing
    scopes later requires clicking Connect again to mint a new token.
 2. Set the credentials on Convex:
 
@@ -176,7 +176,7 @@ npx convex env set FIGMA_CLIENT_ID <client id>
 npx convex env set FIGMA_CLIENT_SECRET <client secret>
 ```
 
-3. In Cohere: Settings → Integrations → Figma → **Connect** (workspace
+3. In Skarm: Settings → Integrations → Figma → **Connect** (workspace
    admins only). Figma asks for read-only file access and redirects back.
 4. On any issue: sidebar → Figma → **+** → paste a link (or just paste a
    figma.com URL into a description or comment — it auto-attaches). The
@@ -189,10 +189,10 @@ What the integration does once connected:
   each link card (↻ in the panel header re-fetches).
 - **Comment to Figma**: the issue comment composer gains an "Also post to
   Figma" checkbox; the comment lands on the linked design (pinned to the
-  frame for node links) as "Name via Cohere ENG-42: …".
+  frame for node links) as "Name via Skarm ENG-42: …".
 - **Dev Mode resources**: frame links push a resource onto the frame in
   Figma Dev Mode — "ENG-42 · In Progress · Title" linking back to the
-  Cohere issue — renamed automatically when the status/title changes and
+  Skarm issue — renamed automatically when the status/title changes and
   removed when the link is removed. Requires `SITE_URL` to be set for the
   link to point at your app.
 
@@ -203,7 +203,7 @@ The app slug is in the app page URL: `github.com/settings/apps/<slug>`.
 ```bash
 npx convex env set GITHUB_APP_SLUG <slug>
 npx convex env set GITHUB_WEBHOOK_SECRET <webhook secret from step 1>
-# For GitHub Issues sync (issue creation from Cohere):
+# For GitHub Issues sync (issue creation from Skarm):
 npx convex env set GITHUB_APP_ID <numeric app id>
 # Production only — where /github-setup redirects users after install.
 # Defaults to http://localhost:3000 when unset.
@@ -229,7 +229,7 @@ served verbatim by Next.js.
 
 ### 3. Connect a workspace
 
-In Cohere: Settings → Integrations → **Connect** (workspace admins only).
+In Skarm: Settings → Integrations → **Connect** (workspace admins only).
 GitHub opens its install screen where you select one, several, or all
 repositories, then redirects you back to the settings page. The granted
 repositories appear as chips and can be changed any time from the GitHub
@@ -241,7 +241,7 @@ App's installation settings — the list re-syncs automatically.
   workspace and user, and sends you to
   `github.com/apps/<slug>/installations/new?state=<nonce>`.
 - After you pick repositories, GitHub redirects to
-  `<convex-site>/github-setup?installation_id=…&state=<nonce>`. Cohere
+  `<convex-site>/github-setup?installation_id=…&state=<nonce>`. Skarm
   verifies the nonce and stores the installation id against the workspace —
   that's the entire binding; no tokens or private keys are stored.
 - GitHub then delivers webhooks (HMAC-signed with the app secret) to
@@ -263,7 +263,7 @@ App's installation settings — the list re-syncs automatically.
   the installation. Connection is optional.
 - **Issue sync**: when a new issue's project has connected repositories,
   the create dialog offers "Also create this issue on GitHub" with a repo
-  choice. The issue is always created in Cohere first; a scheduled action
+  choice. The issue is always created in Skarm first; a scheduled action
   then creates the GitHub twin (via an app JWT → installation token) and
   records the link, which appears in the issue's GitHub panel and activity
   timeline.

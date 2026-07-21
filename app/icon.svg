@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Skarm favicon: the petal pinwheel. -->
+  <defs>
+    <radialGradient id="petal" cx="16" cy="16" r="13" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8a93f5" />
+      <stop offset="0.35" stop-color="#5e6ad2" />
+      <stop offset="1" stop-color="#1c1f45" />
+    </radialGradient>
+  </defs>
+  <g fill="url(#petal)" transform="rotate(-15 16 16)">
+    <path d="M 16 14.6 C 14.2 11.2, 13.2 9.2, 13.4 6.9 A 3.3 3.3 0 0 1 19.9 7.6 C 19.5 9.8, 17.8 11.8, 16 14.6 Z" />
+    <path d="M 16 14.6 C 14.2 11.2, 13.2 9.2, 13.4 6.9 A 3.3 3.3 0 0 1 19.9 7.6 C 19.5 9.8, 17.8 11.8, 16 14.6 Z" transform="rotate(72 16 16)" />
+    <path d="M 16 14.6 C 14.2 11.2, 13.2 9.2, 13.4 6.9 A 3.3 3.3 0 0 1 19.9 7.6 C 19.5 9.8, 17.8 11.8, 16 14.6 Z" transform="rotate(144 16 16)" />
+    <path d="M 16 14.6 C 14.2 11.2, 13.2 9.2, 13.4 6.9 A 3.3 3.3 0 0 1 19.9 7.6 C 19.5 9.8, 17.8 11.8, 16 14.6 Z" transform="rotate(216 16 16)" />
+    <path d="M 16 14.6 C 14.2 11.2, 13.2 9.2, 13.4 6.9 A 3.3 3.3 0 0 1 19.9 7.6 C 19.5 9.8, 17.8 11.8, 16 14.6 Z" transform="rotate(288 16 16)" />
+  </g>
+</svg>

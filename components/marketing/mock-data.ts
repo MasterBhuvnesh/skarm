@@ -82,7 +82,7 @@ export const HERO_ISSUE_GROUPS: {
     issues: [
       {
         id: "ENG-147",
-        title: "Migrate issue search to the Cohere index",
+        title: "Migrate issue search to the Skarm index",
         status: "todo",
         priority: "high",
         assignee: MOCK_PEOPLE.theo,
@@ -120,7 +120,7 @@ export const BOARD_COLUMNS: {
     issues: [
       {
         id: "ENG-147",
-        title: "Migrate issue search to the Cohere index",
+        title: "Migrate issue search to the Skarm index",
         status: "todo",
         priority: "high",
         assignee: MOCK_PEOPLE.theo,
