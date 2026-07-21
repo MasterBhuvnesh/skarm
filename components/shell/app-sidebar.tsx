@@ -7,6 +7,7 @@ import {
   Bot,
   Box,
   ChevronDown,
+  CircleUser,
   FolderKanban,
   PanelLeft,
   PanelLeftClose,
@@ -75,6 +76,7 @@ function NavLink({
 
 export function AppSidebar() {
   const params = useParams<{ orgSlug: string }>();
+  const pathname = usePathname();
   const { organization } = useOrganization();
   const teams = useQuery(api.teams.list);
   const unreadCount = useQuery(api.notifications.unreadCount) ?? 0;
@@ -323,6 +325,25 @@ export function AppSidebar() {
       >
         <UserButton />
         <div className={cn("flex gap-1", collapsed && "flex-col items-center")}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                asChild
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  "size-7",
+                  pathname === base && "bg-accent text-foreground"
+                )}
+                aria-label="My Issues"
+              >
+                <Link href={base}>
+                  <CircleUser className="size-4" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top">My Issues</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

@@ -302,7 +302,7 @@ export const setParent = orgMutation({
       }
       const parent = await getOrgIssue(ctx, ctx.org._id, args.parentIssueId);
 
-      // Walk up from the new parent — hitting this issue means a cycle.
+      // Walk up from the new parent - hitting this issue means a cycle.
       let ancestorId: Id<"issues"> | undefined = parent.parentIssueId;
       for (let depth = 0; ancestorId && depth < 100; depth++) {
         if (ancestorId === issue._id) {

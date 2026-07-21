@@ -92,7 +92,7 @@ function membershipDisplayName(
 
 /**
  * Members management: Clerk-backed member list, role management, removal,
- * and email invitations — with seat caps from the workspace plan.
+ * and email invitations - with seat caps from the workspace plan.
  */
 export function MembersManager() {
   const org = useQuery(api.organizations.current);

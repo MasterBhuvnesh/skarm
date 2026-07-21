@@ -13,7 +13,7 @@ export type CardLabel = { labelId: string; name: string; color: string };
 export type CardAssignee = { name: string; imageUrl?: string };
 
 /**
- * Snapshot once per page load — overdue styling doesn't need to tick live,
+ * Snapshot once per page load - overdue styling doesn't need to tick live,
  * and React Compiler forbids impure calls like Date.now() during render.
  */
 const loadedAt = Date.now();
@@ -125,7 +125,7 @@ export function BoardCard({
       {...listeners}
       onClick={onOpen}
       className={cn(
-        "cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "cursor-pointer rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring [content-visibility:auto] [contain-intrinsic-size:auto_96px]",
         isDragging && "opacity-40"
       )}
     >

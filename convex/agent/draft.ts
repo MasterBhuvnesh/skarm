@@ -20,7 +20,7 @@ import {
 } from "./models";
 
 /**
- * AI issue drafting: expand a one-line idea into a fully specced issue —
+ * AI issue drafting: expand a one-line idea into a fully specced issue -
  * description with acceptance criteria, priority, estimate, labels,
  * sub-issues, and suggested relations to existing team issues. The draft is
  * returned to the create-issue dialog for review; nothing is written until
@@ -254,7 +254,7 @@ export const draftIssue = action({
               estimate: {
                 type: ["number", "null"],
                 description:
-                  "Story points from 1, 2, 3, 5, 8, 13 — null if unclear",
+                  "Story points from 1, 2, 3, 5, 8, 13 - null if unclear",
               },
               labelNames: {
                 type: "array",
@@ -310,7 +310,7 @@ export const draftIssue = action({
             ? `Additional guidance from the user (follow it closely): ${args.instructions.trim()}`
             : "",
           args.previousDescription?.trim()
-            ? `The user asked for a REPHRASE. Previous draft description — write a meaningfully different/improved version, do not repeat it:\n${args.previousDescription.trim().slice(0, 1500)}`
+            ? `The user asked for a REPHRASE. Previous draft description - write a meaningfully different/improved version, do not repeat it:\n${args.previousDescription.trim().slice(0, 1500)}`
             : "",
           EFFORT_GUIDANCE[args.effort ?? "concise"],
           context.orgLabels.length > 0

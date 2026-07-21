@@ -30,7 +30,7 @@ export const PROJECT_COLORS = [
 
 export const DEFAULT_PROJECT_COLOR = PROJECT_COLORS[0];
 
-/** Issue counts by status — matches `progressShape` in convex/projects.ts. */
+/** Issue counts by status - matches `progressShape` in convex/projects.ts. */
 export type IssueProgress = {
   total: number;
   backlog: number;

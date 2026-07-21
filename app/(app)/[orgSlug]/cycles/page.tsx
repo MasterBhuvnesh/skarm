@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateCycleDialog } from "@/components/cycles/create-cycle-dialog";
 import { CycleRow } from "@/components/cycles/cycle-row";
 
-/** Cycles index — Track B. Per-team time-boxed cycles, grouped by team. */
+/** Cycles index - Track B. Per-team time-boxed cycles, grouped by team. */
 export default function CyclesPage() {
   return (
     <Suspense

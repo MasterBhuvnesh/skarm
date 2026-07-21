@@ -77,7 +77,7 @@ export function UpgradePromptDialog({
               planPeriod="month"
               for="organization"
               onSubscriptionComplete={() => {
-                toast.success("Welcome to Cohere Pro");
+                toast.success("Welcome to Skarm Pro");
                 onOpenChange(false);
               }}
               newSubscriptionRedirectUrl={
@@ -103,8 +103,8 @@ export function UpgradePromptDialog({
 
 /**
  * Toast ids already inspected for plan-limit errors. Module-level (not
- * per-instance) so that when more than one listener is mounted — the global
- * one in WorkspaceShell plus any slot-level mounts — exactly one instance
+ * per-instance) so that when more than one listener is mounted - the global
+ * one in WorkspaceShell plus any slot-level mounts - exactly one instance
  * claims a given limit-error toast and opens the dialog.
  */
 const seenToastIds = new Set<string | number>();

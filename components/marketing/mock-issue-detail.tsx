@@ -48,7 +48,7 @@ export function MockIssueDetail({ className }: { className?: string }) {
               <span className="rounded bg-blue-500/10 px-1 font-medium text-blue-500">
                 @Ada
               </span>{" "}
-              repro’d this on a 60-card column — fix in review, demo in the
+              repro’d this on a 60-card column - fix in review, demo in the
               cycle sync.
             </p>
           </div>

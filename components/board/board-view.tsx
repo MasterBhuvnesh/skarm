@@ -69,6 +69,12 @@ const SORT_GAP = 1000;
  * new neighbors, applied optimistically so the realtime query never
  * flickers.
  */
+export type ColumnPagination = {
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
+};
+
 export function BoardView({
   issues,
   teamId,
@@ -76,6 +82,7 @@ export function BoardView({
   orgSlug,
   labelsByIssue,
   assigneesById,
+  pagination,
 }: {
   issues: Doc<"issues">[];
   teamId: Id<"teams">;
@@ -83,6 +90,7 @@ export function BoardView({
   orgSlug: string;
   labelsByIssue: Map<Id<"issues">, CardLabel[]>;
   assigneesById: Map<string, CardAssignee>;
+  pagination: Record<IssueStatus, ColumnPagination>;
 }) {
   const router = useRouter();
   const sensors = useSensors(
@@ -90,27 +98,62 @@ export function BoardView({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Board columns each subscribe to their own paginated query, so an
+  // optimistic move must edit the loaded pages directly: drop the issue from
+  // wherever it sits and prepend it to the target column's head page. Display
+  // re-sorts by sortOrder, so the exact bucket doesn't matter until the server
+  // reconciles the real pages.
   const updateIssue = useMutation(api.issues.update).withOptimisticUpdate(
     (localStore, args) => {
-      const current = localStore.getQuery(api.issues.listByTeam, { teamId });
-      if (!current) {
+      const pages = localStore.getAllQueries(
+        api.issues.listByTeamStatusPaginated
+      );
+      type LoadedIssue = NonNullable<
+        (typeof pages)[number]["value"]
+      >["page"][number];
+
+      let moving: LoadedIssue | undefined;
+      for (const { args: qArgs, value } of pages) {
+        if (!value || qArgs.teamId !== teamId) {
+          continue;
+        }
+        const found = value.page.find((issue) => issue._id === args.issueId);
+        if (found) {
+          moving = found;
+          break;
+        }
+      }
+      if (!moving) {
         return;
       }
-      localStore.setQuery(
-        api.issues.listByTeam,
-        { teamId },
-        current.map((issue) =>
-          issue._id === args.issueId
-            ? {
-                ...issue,
-                ...(args.status !== undefined ? { status: args.status } : {}),
-                ...(args.sortOrder !== undefined
-                  ? { sortOrder: args.sortOrder }
-                  : {}),
-              }
-            : issue
-        )
-      );
+      const updated: LoadedIssue = {
+        ...moving,
+        ...(args.status !== undefined ? { status: args.status } : {}),
+        ...(args.sortOrder !== undefined ? { sortOrder: args.sortOrder } : {}),
+      };
+
+      for (const { args: qArgs, value } of pages) {
+        if (!value || qArgs.teamId !== teamId) {
+          continue;
+        }
+        const hadIssue = value.page.some(
+          (issue) => issue._id === args.issueId
+        );
+        const isTargetHead =
+          qArgs.status === updated.status &&
+          qArgs.paginationOpts.cursor === null;
+        if (!hadIssue && !isTargetHead) {
+          continue;
+        }
+        let page = value.page.filter((issue) => issue._id !== args.issueId);
+        if (isTargetHead) {
+          page = [updated, ...page];
+        }
+        localStore.setQuery(api.issues.listByTeamStatusPaginated, qArgs, {
+          ...value,
+          page,
+        });
+      }
     }
   );
 
@@ -315,6 +358,9 @@ export function BoardView({
             labelsByIssue={labelsByIssue}
             assigneesById={assigneesById}
             onOpenIssue={openIssue}
+            canLoadMore={pagination[value].canLoadMore}
+            isLoadingMore={pagination[value].isLoadingMore}
+            onLoadMore={pagination[value].loadMore}
           />
         ))}
       </div>

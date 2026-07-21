@@ -12,4 +12,13 @@ crons.interval(
   {}
 );
 
+// Email digests target user-local hours (morning/evening); an hourly sweep
+// catches every timezone's window exactly once per local day.
+crons.hourly(
+  "send due email digests",
+  { minuteUTC: 0 },
+  internal.email.sendDigest.sweep,
+  {}
+);
+
 export default crons;

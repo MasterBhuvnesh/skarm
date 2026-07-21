@@ -141,7 +141,7 @@ export function AttachmentsPanel({ issue }: IssueDetailSlotProps) {
                     href={attachment.url}
                     target="_blank"
                     rel="noreferrer"
-                    title={`${attachment.fileName} — uploaded by ${attachment.uploaderName}`}
+                    title={`${attachment.fileName} - uploaded by ${attachment.uploaderName}`}
                     className="min-w-0 flex-1 truncate hover:underline"
                   >
                     {attachment.fileName}

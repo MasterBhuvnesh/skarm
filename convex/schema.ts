@@ -2,7 +2,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 /**
- * Shared validators — import these from feature code instead of redefining.
+ * Shared validators - import these from feature code instead of redefining.
  * The schema is FROZEN for parallel track work: coordinate before editing this file.
  */
 export const issueStatusValidator = v.union(
@@ -59,7 +59,8 @@ export const templateCadenceValidator = v.union(
 export const notificationTypeValidator = v.union(
   v.literal("mention"),
   v.literal("assigned"),
-  v.literal("status_changed")
+  v.literal("status_changed"),
+  v.literal("reply")
 );
 
 export default defineSchema({
@@ -133,6 +134,7 @@ export default defineSchema({
     .index("by_team_and_number", ["teamId", "number"])
     .index("by_team_and_status", ["teamId", "status"])
     .index("by_assignee", ["orgId", "assigneeId"])
+    .index("by_creator", ["orgId", "creatorId"])
     .index("by_project", ["projectId"])
     .index("by_cycle", ["cycleId"])
     .index("by_parent", ["parentIssueId"])
@@ -146,7 +148,8 @@ export default defineSchema({
     })
     .vectorIndex("by_embedding", {
       vectorField: "embedding",
-      dimensions: 1536,
+      // Must match the embedding model's output size: nv-embed-v1 → 4096.
+      dimensions: 4096,
       filterFields: ["orgId"],
     }),
 
@@ -175,14 +178,22 @@ export default defineSchema({
   comments: defineTable({
     orgId: v.id("organizations"),
     issueId: v.id("issues"),
-    /** Absent for external comments — see externalAuthor */
+    /** Absent for external comments - see externalAuthor */
     authorId: v.optional(v.id("users")),
     /** Display name of an external author (e.g. a GitHub login) */
     externalAuthor: v.optional(v.string()),
     body: v.string(),
     /** User ids @mentioned in the body */
     mentions: v.optional(v.array(v.id("users"))),
-  }).index("by_issue", ["issueId"]),
+    /** Root comment this replies to. Threads are one level deep. */
+    parentId: v.optional(v.id("comments")),
+    /** Emoji reactions; grouped by emoji for display. */
+    reactions: v.optional(
+      v.array(v.object({ emoji: v.string(), userId: v.id("users") }))
+    ),
+  })
+    .index("by_issue", ["issueId"])
+    .index("by_parent", ["parentId"]),
 
   integrations: defineTable({
     orgId: v.id("organizations"),
@@ -245,7 +256,7 @@ export default defineSchema({
     .index("by_issue", ["issueId"])
     .index("by_org_repo_number", ["orgId", "repo", "number"]),
 
-  /** GitHub comments mirroring Cohere attachments, so removal can delete them. */
+  /** GitHub comments mirroring Skarm attachments, so removal can delete them. */
   githubAttachmentComments: defineTable({
     orgId: v.id("organizations"),
     attachmentId: v.id("attachments"),
@@ -276,7 +287,7 @@ export default defineSchema({
     .index("by_issue", ["issueId"])
     .index("by_token", ["token"]),
 
-  /** Cohere issue ↔ GitHub issue sync links (created by the sync layer). */
+  /** Skarm issue ↔ GitHub issue sync links (created by the sync layer). */
   githubIssues: defineTable({
     orgId: v.id("organizations"),
     issueId: v.id("issues"),
@@ -293,7 +304,7 @@ export default defineSchema({
     orgId: v.id("organizations"),
     /** Recipient */
     userId: v.id("users"),
-    /** Absent for automated events — see systemActor */
+    /** Absent for automated events - see systemActor */
     actorId: v.optional(v.id("users")),
     /** Automated actor (e.g. the GitHub integration) */
     systemActor: v.optional(v.literal("github")),
@@ -308,10 +319,21 @@ export default defineSchema({
     .index("by_user", ["orgId", "userId"])
     .index("by_user_read", ["orgId", "userId", "read"]),
 
+  /** Per-member notification channel toggles. One doc per member, created
+      lazily on first toggle; a missing doc means everything is enabled. */
+  notificationPrefs: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.id("users"),
+    mention: v.boolean(),
+    assigned: v.boolean(),
+    statusChanged: v.boolean(),
+    github: v.boolean(),
+  }).index("by_org_user", ["orgId", "userId"]),
+
   activity: defineTable({
     orgId: v.id("organizations"),
     issueId: v.id("issues"),
-    /** Absent for automated events — see systemActor */
+    /** Absent for automated events - see systemActor */
     actorId: v.optional(v.id("users")),
     /** Automated actor (e.g. the GitHub integration) */
     systemActor: v.optional(v.literal("github")),
@@ -333,7 +355,7 @@ export default defineSchema({
     /** Target date as ms since epoch */
     targetDate: v.optional(v.number()),
     color: v.optional(v.string()),
-    /** Legacy single repo — superseded by githubRepos */
+    /** Legacy single repo - superseded by githubRepos */
     githubRepo: v.optional(v.string()),
     /** Connected GitHub repos, "owner/name" */
     githubRepos: v.optional(v.array(v.string())),
@@ -387,6 +409,40 @@ export default defineSchema({
     .index("by_org", ["orgId"])
     .index("by_team", ["teamId"])
     .index("by_next_run", ["nextRunAt"]),
+
+  /** Per-member email digest schedule + content preferences. One doc per
+      member, created on first save; missing doc = digests off. */
+  emailDigests: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.id("users"),
+    enabled: v.boolean(),
+    /** Local-time delivery window: morning ≈ 8:00, evening ≈ 18:00, any ≈ 9:00. */
+    timeOfDay: v.union(
+      v.literal("morning"),
+      v.literal("evening"),
+      v.literal("any")
+    ),
+    frequency: v.union(
+      v.literal("daily"),
+      v.literal("weekly"),
+      v.literal("custom")
+    ),
+    /** Weekdays 0 (Sun) – 6 (Sat). Weekly holds one entry; custom any set. */
+    days: v.array(v.number()),
+    sections: v.object({
+      assigned: v.boolean(),
+      inProgress: v.boolean(),
+      mentions: v.boolean(),
+      focus: v.boolean(),
+    }),
+    /** JS getTimezoneOffset(): minutes to add to local time to reach UTC. */
+    tzOffsetMinutes: v.number(),
+    /** Local date "YYYY-MM-DD" of the last delivery - the once-a-day guard. */
+    lastSentDay: v.optional(v.string()),
+    lastSentAt: v.optional(v.number()),
+  })
+    .index("by_org_user", ["orgId", "userId"])
+    .index("by_enabled", ["enabled"]),
 
   views: defineTable({
     orgId: v.id("organizations"),

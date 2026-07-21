@@ -24,7 +24,7 @@ export function aiMessageKey(
 /**
  * Agent-component thread owner key. Threads are stored in the agent
  * component keyed by this composite id, scoping every thread to a single
- * (organization, user) pair — listing/reading threads can therefore never
+ * (organization, user) pair - listing/reading threads can therefore never
  * cross org boundaries.
  */
 export function threadUserKey(

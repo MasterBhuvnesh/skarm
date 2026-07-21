@@ -51,7 +51,7 @@ export async function getCurrentUser(
 /**
  * Resolve the full auth context: user + active organization + membership.
  * The active org comes from the `org_id` claim in the Clerk JWT and is
- * verified against the synced members table — never trust the client.
+ * verified against the synced members table - never trust the client.
  */
 export async function getAuthContext(
   ctx: QueryCtx | MutationCtx

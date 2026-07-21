@@ -1,3 +1,4 @@
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
@@ -67,6 +68,115 @@ export const listByTeam = orgQuery({
   },
 });
 
+/** Paginated result shape for issue queries - matches `.paginate()`. */
+const paginatedIssues = v.object({
+  page: v.array(v.object(issueShape)),
+  isDone: v.boolean(),
+  continueCursor: v.string(),
+  splitCursor: v.optional(v.union(v.string(), v.null())),
+  pageStatus: v.optional(
+    v.union(
+      v.literal("SplitRecommended"),
+      v.literal("SplitRequired"),
+      v.null()
+    )
+  ),
+});
+
+/** Paginated team issues (newest first), for the list view. */
+export const listByTeamPaginated = orgQuery({
+  args: { teamId: v.id("teams"), paginationOpts: paginationOptsValidator },
+  returns: paginatedIssues,
+  handler: async (ctx, args) => {
+    const team = await ctx.db.get(args.teamId);
+    if (!team || team.orgId !== ctx.org._id) {
+      throw new Error("Team not found");
+    }
+    return await ctx.db
+      .query("issues")
+      .withIndex("by_team", (q) => q.eq("teamId", args.teamId))
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+/** Paginated team issues for a single status, for per-column board loading. */
+export const listByTeamStatusPaginated = orgQuery({
+  args: {
+    teamId: v.id("teams"),
+    status: issueStatusValidator,
+    paginationOpts: paginationOptsValidator,
+  },
+  returns: paginatedIssues,
+  handler: async (ctx, args) => {
+    const team = await ctx.db.get(args.teamId);
+    if (!team || team.orgId !== ctx.org._id) {
+      throw new Error("Team not found");
+    }
+    return await ctx.db
+      .query("issues")
+      .withIndex("by_team_and_status", (q) =>
+        q.eq("teamId", args.teamId).eq("status", args.status)
+      )
+      .order("desc")
+      .paginate(args.paginationOpts);
+  },
+});
+
+/**
+ * Workspace-home dashboard data: issues assigned to and created by the
+ * caller, each enriched with its team key so the UI renders KEY-number
+ * without extra round trips. `created` excludes anything already in
+ * `assigned` to avoid duplicate rows.
+ */
+export const myIssues = orgQuery({
+  args: {},
+  returns: v.object({
+    assigned: v.array(v.object({ ...issueShape, teamKey: v.string() })),
+    created: v.array(v.object({ ...issueShape, teamKey: v.string() })),
+  }),
+  handler: async (ctx) => {
+    const assignedDocs = await ctx.db
+      .query("issues")
+      .withIndex("by_assignee", (q) =>
+        q.eq("orgId", ctx.org._id).eq("assigneeId", ctx.user._id)
+      )
+      .order("desc")
+      .take(200);
+    const assignedIds = new Set(assignedDocs.map((issue) => issue._id));
+    const createdDocs = (
+      await ctx.db
+        .query("issues")
+        .withIndex("by_creator", (q) =>
+          q.eq("orgId", ctx.org._id).eq("creatorId", ctx.user._id)
+        )
+        .order("desc")
+        .take(200)
+    ).filter((issue) => !assignedIds.has(issue._id));
+
+    const teamKeys = new Map<Id<"teams">, string>();
+    const withTeamKey = async (issue: Doc<"issues">) => {
+      let key = teamKeys.get(issue.teamId);
+      if (key === undefined) {
+        const team = await ctx.db.get(issue.teamId);
+        key = team?.key ?? "?";
+        teamKeys.set(issue.teamId, key);
+      }
+      return { ...issue, teamKey: key };
+    };
+
+    const assigned = [];
+    for (const issue of assignedDocs) {
+      assigned.push(await withTeamKey(issue));
+    }
+    const created = [];
+    for (const issue of createdDocs) {
+      created.push(await withTeamKey(issue));
+    }
+    return { assigned, created };
+  },
+});
+
 export const get = orgQuery({
   args: { issueId: v.id("issues") },
   returns: v.union(v.object(issueShape), v.null()),
@@ -100,7 +210,7 @@ export const getByNumber = orgQuery({
 /**
  * Core issue creation shared by `issues.create` and recurring templates
  * (convex/issueTemplates.ts). Owns numbering, sort order, labels, and the
- * activity log — the only code path that claims issue numbers.
+ * activity log - the only code path that claims issue numbers.
  */
 export async function insertIssue(
   ctx: MutationCtx,
@@ -266,7 +376,7 @@ export const create = orgMutation({
     }
 
     // Relations from drafting. The issue is brand new, so no existing-link
-    // dedupe is needed — just normalize blocked_by like issueRelations.create.
+    // dedupe is needed - just normalize blocked_by like issueRelations.create.
     const identifier = `${team.key}-${(await ctx.db.get(issueId))!.number}`;
     const linked = new Set<Id<"issues">>([issueId]);
     for (const relation of relations ?? []) {

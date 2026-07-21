@@ -69,7 +69,7 @@ export function WorkspaceShell({
     return <FullScreenLoader label="Loading workspace…" />;
   }
 
-  // Webhook sync still in flight — Convex queries are reactive, so this
+  // Webhook sync still in flight - Convex queries are reactive, so this
   // resolves by itself within a second or two of first sign-up.
   if (currentUser === null || currentOrg === null) {
     return <FullScreenLoader label="Setting up your workspace…" />;

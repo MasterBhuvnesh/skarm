@@ -72,7 +72,7 @@ export function AiConversation({ threadId }: { threadId: string }) {
           messages[messages.length - 1].role === "user" && (
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Loader2 className="size-3 animate-spin" />
-              Cohere is thinking…
+              Skarm is thinking…
             </div>
           )}
       </div>

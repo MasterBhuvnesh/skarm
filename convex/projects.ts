@@ -17,13 +17,13 @@ export const projectShape = {
   leadId: v.optional(v.id("users")),
   targetDate: v.optional(v.number()),
   color: v.optional(v.string()),
-  /** Legacy single repo — superseded by githubRepos */
+  /** Legacy single repo - superseded by githubRepos */
   githubRepo: v.optional(v.string()),
   githubRepos: v.optional(v.array(v.string())),
   githubRepoConnectedBy: v.optional(v.id("users")),
 };
 
-/** Issue counts by status — the project progress primitive. */
+/** Issue counts by status - the project progress primitive. */
 export const progressShape = v.object({
   total: v.number(),
   backlog: v.number(),
@@ -87,7 +87,7 @@ export const list = orgQuery({
   },
 });
 
-/** Projects with issue counts by status — powers the projects index page. */
+/** Projects with issue counts by status - powers the projects index page. */
 export const listWithProgress = orgQuery({
   args: {},
   returns: v.array(v.object({ ...projectShape, progress: progressShape })),
@@ -132,7 +132,7 @@ export const listIssues = orgQuery({
 });
 
 /**
- * Recent org issues NOT already in the given project — candidates for the
+ * Recent org issues NOT already in the given project - candidates for the
  * "add issues to project" picker. Assignment itself goes through
  * `issues.update` (projectId arg).
  */

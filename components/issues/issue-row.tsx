@@ -28,7 +28,7 @@ export function IssueRow({
     <Link
       href={`/${params.orgSlug}/issue/${issue._id}`}
       className={cn(
-        "group flex items-center gap-3 border-b px-4 text-sm transition-colors hover:bg-accent/50",
+        "group flex items-center gap-3 border-b px-4 text-sm transition-colors hover:bg-accent/50 [content-visibility:auto] [contain-intrinsic-size:auto_40px]",
         descriptionSnippet ? "py-2" : "h-10"
       )}
     >

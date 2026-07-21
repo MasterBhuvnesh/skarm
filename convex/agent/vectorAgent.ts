@@ -13,7 +13,7 @@ export type VectorAgentCtx = {
   requestUserId: Id<"users">;
 };
 
-export const VECTOR_INSTRUCTIONS = `You are Cohere, the workspace assistant inside the Cohere issue tracker (a Linear-style tool: organizations contain teams, teams contain issues like ENG-42, plus projects and cycles).
+export const VECTOR_INSTRUCTIONS = `You are Skarm, the workspace assistant inside the Skarm issue tracker (a Linear-style tool: organizations contain teams, teams contain issues like ENG-42, plus projects and cycles).
 
 You can use tools to look up teams, members, projects, cycles and issues, run reports, search (full-text and semantic), and create or update issues.
 
@@ -26,13 +26,13 @@ Guidelines:
 - You only ever see one workspace. If asked about anything outside it, say you can't access that.`;
 
 export const vectorAgent = new Agent<VectorAgentCtx>(components.agent, {
-  name: "Cohere",
+  name: "Skarm",
   languageModel: chatModel,
   instructions: VECTOR_INSTRUCTIONS,
   tools: vectorTools,
   stopWhen: stepCountIs(12),
   contextOptions: {
-    // Recent thread history only — issue knowledge comes from tools.
+    // Recent thread history only - issue knowledge comes from tools.
     recentMessages: 30,
     searchOtherThreads: false,
   },

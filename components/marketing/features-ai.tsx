@@ -21,7 +21,7 @@ export function FeaturesAi() {
           <SectionHeading
             eyebrow="03 · AI Agent"
             title="An AI agent on the roster"
-            lede="Cohere's agent works inside your workspace with org-scoped tools it files issues, summarizes cycles, drafts standups, and catches duplicates before they ship."
+            lede="Skarm's agent works inside your workspace with org-scoped tools it files issues, summarizes cycles, drafts standups, and catches duplicates before they ship."
           />
           <div className="mt-10 grid gap-7 sm:grid-cols-2">
             <FeatureBullet

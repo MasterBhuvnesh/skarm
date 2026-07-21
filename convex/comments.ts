@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -14,6 +14,8 @@ const enrichedCommentValidator = v.object({
   _creationTime: v.number(),
   issueId: v.id("issues"),
   authorId: v.optional(v.id("users")),
+  /** Set on replies; points at the root comment (threads are one level deep). */
+  parentId: v.optional(v.id("comments")),
   body: v.string(),
   mentions: v.array(v.id("users")),
   authorName: v.string(),
@@ -23,6 +25,15 @@ const enrichedCommentValidator = v.object({
   /** Resolved names for everyone @mentioned, for highlight rendering. */
   mentionedUsers: v.array(
     v.object({ userId: v.id("users"), name: v.string() })
+  ),
+  /** Emoji reactions grouped by emoji, with reactor names for the tooltip. */
+  reactions: v.array(
+    v.object({
+      emoji: v.string(),
+      count: v.number(),
+      reactedByMe: v.boolean(),
+      names: v.array(v.string()),
+    })
   ),
 });
 
@@ -91,11 +102,36 @@ export const listByIssue = orgQuery({
           mentionedUsers.push({ userId: user._id, name: user.name });
         }
       }
+
+      // Group raw reactions by emoji (insertion order preserved).
+      const grouped = new Map<
+        string,
+        { count: number; reactedByMe: boolean; names: string[] }
+      >();
+      for (const reaction of comment.reactions ?? []) {
+        let group = grouped.get(reaction.emoji);
+        if (!group) {
+          group = { count: 0, reactedByMe: false, names: [] };
+          grouped.set(reaction.emoji, group);
+        }
+        group.count += 1;
+        if (reaction.userId === ctx.user._id) {
+          group.reactedByMe = true;
+        }
+        const reactor = await getUser(reaction.userId);
+        group.names.push(reactor?.name ?? "Unknown user");
+      }
+      const reactions = [...grouped.entries()].map(([emoji, group]) => ({
+        emoji,
+        ...group,
+      }));
+
       result.push({
         _id: comment._id,
         _creationTime: comment._creationTime,
         issueId: comment.issueId,
         authorId: comment.authorId,
+        parentId: comment.parentId,
         body: comment.body,
         mentions,
         authorName:
@@ -103,6 +139,7 @@ export const listByIssue = orgQuery({
         authorImageUrl: author?.imageUrl,
         external: comment.externalAuthor !== undefined,
         mentionedUsers,
+        reactions,
       });
     }
     return result;
@@ -114,6 +151,8 @@ export const create = orgMutation({
     issueId: v.id("issues"),
     body: v.string(),
     mentions: v.optional(v.array(v.id("users"))),
+    /** Reply to this comment; flattened to the root if it is itself a reply. */
+    parentId: v.optional(v.id("comments")),
     /** Also post this comment to the issue's linked Figma design(s). */
     postToFigma: v.optional(v.boolean()),
   },
@@ -132,12 +171,32 @@ export const create = orgMutation({
       args.mentions ?? []
     );
 
+    // Resolve the thread root for replies (threads are one level deep).
+    let parentId: Id<"comments"> | undefined;
+    let replyRecipient: Id<"users"> | undefined;
+    if (args.parentId) {
+      const parent = await getOrgComment(ctx, ctx.org._id, args.parentId);
+      if (parent.issueId !== issue._id) {
+        throw new ConvexError("Parent comment is on a different issue");
+      }
+      if (parent.parentId) {
+        // Flatten: attach to the parent's root and notify the root author.
+        parentId = parent.parentId;
+        const root = await getOrgComment(ctx, ctx.org._id, parent.parentId);
+        replyRecipient = root.authorId;
+      } else {
+        parentId = parent._id;
+        replyRecipient = parent.authorId;
+      }
+    }
+
     const commentId = await ctx.db.insert("comments", {
       orgId: ctx.org._id,
       issueId: issue._id,
       authorId: ctx.user._id,
       body,
       mentions,
+      ...(parentId ? { parentId } : {}),
     });
 
     await logActivity(ctx, {
@@ -154,6 +213,18 @@ export const create = orgMutation({
         actorId: ctx.user._id,
         issueId: issue._id,
         type: "mention",
+        commentId,
+      });
+    }
+
+    // Notify the root author of a reply (createNotification skips self-replies).
+    if (replyRecipient) {
+      await createNotification(ctx, {
+        orgId: ctx.org._id,
+        userId: replyRecipient,
+        actorId: ctx.user._id,
+        issueId: issue._id,
+        type: "reply",
         commentId,
       });
     }
@@ -208,6 +279,28 @@ export const update = orgMutation({
   },
 });
 
+export const toggleReaction = orgMutation({
+  args: { commentId: v.id("comments"), emoji: v.string() },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (args.emoji.length > 8) {
+      throw new ConvexError("Invalid emoji");
+    }
+    const comment = await getOrgComment(ctx, ctx.org._id, args.commentId);
+    const reactions = comment.reactions ?? [];
+    const mine = reactions.findIndex(
+      (reaction) =>
+        reaction.emoji === args.emoji && reaction.userId === ctx.user._id
+    );
+    const next =
+      mine >= 0
+        ? reactions.filter((_, index) => index !== mine)
+        : [...reactions, { emoji: args.emoji, userId: ctx.user._id }];
+    await ctx.db.patch(comment._id, { reactions: next });
+    return null;
+  },
+});
+
 export const remove = orgMutation({
   args: { commentId: v.id("comments") },
   returns: v.null(),
@@ -217,6 +310,16 @@ export const remove = orgMutation({
     const isAdmin = ctx.membership.role === "admin";
     if (!isAuthor && !isAdmin) {
       throw new Error("Only the author or an admin can delete a comment");
+    }
+    // Deleting a top-level comment removes its replies too.
+    if (!comment.parentId) {
+      const replies = await ctx.db
+        .query("comments")
+        .withIndex("by_parent", (q) => q.eq("parentId", comment._id))
+        .collect();
+      for (const reply of replies) {
+        await ctx.db.delete(reply._id);
+      }
     }
     await ctx.db.delete(comment._id);
     return null;

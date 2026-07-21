@@ -1,9 +1,9 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { Columns3, List, Loader2, Plus, Search, SearchX } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { matchSnippet } from "@/lib/utils";
 
 /**
- * Team issues list — the foundation vertical slice. Track A adds the board
+ * Team issues list - the foundation vertical slice. Track A adds the board
  * view, filtering, and saved views on top of this route's sibling pages.
  */
 export default function TeamIssuesPage() {
@@ -30,7 +30,15 @@ export default function TeamIssuesPage() {
   const router = useRouter();
   const teamId = params.teamId as Id<"teams">;
   const team = useQuery(api.teams.get, { teamId });
-  const issues = useQuery(api.issues.listByTeam, { teamId });
+  const {
+    results: issues,
+    status: loadStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.issues.listByTeamPaginated,
+    { teamId },
+    { initialNumItems: 100 }
+  );
   const { openCreateIssue } = useCommands();
 
   // Full-text search over title AND description (search.issues merges the
@@ -42,7 +50,26 @@ export default function TeamIssuesPage() {
     debouncedQuery ? { query: debouncedQuery, teamId } : "skip"
   );
 
-  if (team === undefined || issues === undefined) {
+  // Auto-load the next page when the bottom sentinel scrolls into view.
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = loadMoreRef.current;
+    if (!el) {
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && loadStatus === "CanLoadMore") {
+          loadMore(100);
+        }
+      },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadStatus, loadMore, query]);
+
+  if (team === undefined || loadStatus === "LoadingFirstPage") {
     return (
       <div className="flex flex-1 items-center justify-center">
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
@@ -138,20 +165,31 @@ export default function TeamIssuesPage() {
             </p>
           </div>
         ) : (
-          grouped.map(({ status, issues: groupIssues }) => (
-            <section key={status.value}>
-              <div className="flex h-9 items-center gap-2 bg-muted/50 px-4 text-sm">
-                <StatusIcon status={status.value} />
-                <span className="font-medium">{status.label}</span>
+          <>
+            {grouped.map(({ status, issues: groupIssues }) => (
+              <section key={status.value}>
+                <div className="flex h-9 items-center gap-2 bg-muted/50 px-4 text-sm">
+                  <StatusIcon status={status.value} />
+                  <span className="font-medium">{status.label}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {groupIssues.length}
+                  </span>
+                </div>
+                {groupIssues.map((issue) => (
+                  <IssueRow key={issue._id} issue={issue} teamKey={team.key} />
+                ))}
+              </section>
+            ))}
+            {loadStatus === "LoadingMore" ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
-                  {groupIssues.length}
+                  Loading more…
                 </span>
               </div>
-              {groupIssues.map((issue) => (
-                <IssueRow key={issue._id} issue={issue} teamKey={team.key} />
-              ))}
-            </section>
-          ))
+            ) : null}
+            <div ref={loadMoreRef} className="h-1" />
+          </>
         )}
       </ScrollArea>
     </>

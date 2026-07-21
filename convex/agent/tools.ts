@@ -11,7 +11,7 @@ import { embedText } from "./embeddings";
  *
  * SECURITY: every tool reads `orgId` / `requestUserId` from the custom action
  * context that our own internal action injects after authenticating the
- * caller. The model can never choose which org it operates on — tool inputs
+ * caller. The model can never choose which org it operates on - tool inputs
  * only carry user-meaningful identifiers (team keys, issue numbers, emails)
  * that are resolved inside the caller's org.
  *

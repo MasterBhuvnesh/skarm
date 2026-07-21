@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CreateProjectDialog } from "@/components/projects/create-project-dialog";
 import { ProjectRow } from "@/components/projects/project-row";
 
-/** Projects index — Track B. Org-level projects with progress at a glance. */
+/** Projects index - Track B. Org-level projects with progress at a glance. */
 export default function ProjectsPage() {
   return (
     <Suspense

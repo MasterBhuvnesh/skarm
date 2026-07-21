@@ -28,8 +28,93 @@ export async function createNotification(
   if (args.userId === args.actorId) {
     return;
   }
+  // Respect the recipient's per-channel toggles. A missing doc means every
+  // channel is enabled. Unmapped/future types fall through to insert.
+  const prefs = await ctx.db
+    .query("notificationPrefs")
+    .withIndex("by_org_user", (q) =>
+      q.eq("orgId", args.orgId).eq("userId", args.userId)
+    )
+    .unique();
+  if (prefs) {
+    const channel: PrefKey | undefined =
+      args.systemActor === "github" ? "github" : CHANNEL_BY_TYPE[args.type];
+    if (channel && !prefs[channel]) {
+      return;
+    }
+  }
   await ctx.db.insert("notifications", { ...args, read: false });
 }
+
+/** Notification type → prefs channel. Unmapped types stay unmapped (allowed). */
+const CHANNEL_BY_TYPE: Record<string, PrefKey> = {
+  mention: "mention",
+  assigned: "assigned",
+  status_changed: "statusChanged",
+};
+
+type PrefKey = "mention" | "assigned" | "statusChanged" | "github";
+
+const prefsValidator = v.object({
+  mention: v.boolean(),
+  assigned: v.boolean(),
+  statusChanged: v.boolean(),
+  github: v.boolean(),
+});
+
+export const getPrefs = orgQuery({
+  args: {},
+  returns: prefsValidator,
+  handler: async (ctx) => {
+    const prefs = await ctx.db
+      .query("notificationPrefs")
+      .withIndex("by_org_user", (q) =>
+        q.eq("orgId", ctx.org._id).eq("userId", ctx.user._id)
+      )
+      .unique();
+    return {
+      mention: prefs?.mention ?? true,
+      assigned: prefs?.assigned ?? true,
+      statusChanged: prefs?.statusChanged ?? true,
+      github: prefs?.github ?? true,
+    };
+  },
+});
+
+export const setPref = orgMutation({
+  args: {
+    key: v.union(
+      v.literal("mention"),
+      v.literal("assigned"),
+      v.literal("statusChanged"),
+      v.literal("github")
+    ),
+    enabled: v.boolean(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("notificationPrefs")
+      .withIndex("by_org_user", (q) =>
+        q.eq("orgId", ctx.org._id).eq("userId", ctx.user._id)
+      )
+      .unique();
+    if (existing) {
+      await ctx.db.patch(existing._id, { [args.key]: args.enabled });
+    } else {
+      await ctx.db.insert("notificationPrefs", {
+        orgId: ctx.org._id,
+        userId: ctx.user._id,
+        mention: true,
+        assigned: true,
+        statusChanged: true,
+        github: true,
+        [args.key]: args.enabled,
+      });
+    }
+    return null;
+  },
+});
 
 const enrichedNotificationValidator = v.object({
   _id: v.id("notifications"),
@@ -114,7 +199,7 @@ export const unreadCount = orgQuery({
   args: {},
   returns: v.number(),
   handler: async (ctx) => {
-    // ponytail: capped at 100 — the badge shows "9+" long before this matters.
+    // ponytail: capped at 100 - the badge shows "9+" long before this matters.
     const unread = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) =>

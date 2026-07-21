@@ -21,13 +21,13 @@ import { MockFrame, MockWindowBar } from "@/components/marketing/mock-window";
 import { cn } from "@/lib/utils";
 
 /**
- * The hero product mock: a full Cohere workspace window (sidebar + grouped
+ * The hero product mock: a full Skarm workspace window (sidebar + grouped
  * issue list) built from the same primitives the real app uses.
  */
 export function MockApp({ className }: { className?: string }) {
   return (
     <MockFrame className={className}>
-      <MockWindowBar title="cohere/acme/team/eng" />
+      <MockWindowBar title="skarm/acme/team/eng" />
       <div className="flex h-104 text-[13px]">
         <MockSidebar />
         <div className="flex min-w-0 flex-1 flex-col">

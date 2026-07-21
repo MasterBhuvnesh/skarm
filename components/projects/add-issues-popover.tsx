@@ -17,7 +17,7 @@ import { StatusIcon } from "@/components/shared/status-icon";
 /**
  * "Add issues" picker shared by the project and cycle detail pages. The
  * actual assignment goes through `issues.update` (projectId/cycleId) in the
- * caller — this component only renders candidates and reports selections.
+ * caller - this component only renders candidates and reports selections.
  * Stays open after a pick so several issues can be added in a row; the
  * candidate list shrinks reactively as issues are assigned.
  */

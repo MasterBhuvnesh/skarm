@@ -62,7 +62,7 @@ export function AiComposer({
           placeholder={
             disabled
               ? (disabledReason ?? "AI is unavailable")
-              : "Ask Cohere to create, find or report on issues…"
+              : "Ask Skarm to create, find or report on issues…"
           }
           disabled={disabled || sending}
           rows={1}
@@ -79,7 +79,7 @@ export function AiComposer({
         </Button>
       </form>
       <p className="mx-auto mt-1.5 max-w-2xl px-1 text-[10px] text-muted-foreground">
-        Cohere can create and edit issues in your workspace. Enter to send,
+        Skarm can create and edit issues in your workspace. Enter to send,
         Shift+Enter for a new line.
       </p>
     </div>

@@ -71,7 +71,7 @@ async function countProgress(
   return progress;
 }
 
-/** Cycles for one team, newest first (lightweight — for pickers). */
+/** Cycles for one team, newest first (lightweight - for pickers). */
 export const listByTeam = orgQuery({
   args: { teamId: v.id("teams") },
   returns: v.array(v.object(cycleShape)),
@@ -86,7 +86,7 @@ export const listByTeam = orgQuery({
 });
 
 /**
- * Every cycle in the org with team info and per-status issue counts —
+ * Every cycle in the org with team info and per-status issue counts -
  * powers the cycles index page.
  */
 export const listWithProgress = orgQuery({
@@ -137,7 +137,7 @@ export const get = orgQuery({
 });
 
 /**
- * The team's current cycle — the active cycle (startDate ≤ now ≤ endDate)
+ * The team's current cycle - the active cycle (startDate ≤ now ≤ endDate)
  * with the most recent start, or null when no cycle is running.
  */
 export const currentForTeam = orgQuery({
@@ -172,7 +172,7 @@ export const listIssues = orgQuery({
 });
 
 /**
- * Team issues NOT already in the given cycle — candidates for the
+ * Team issues NOT already in the given cycle - candidates for the
  * "add issues to cycle" picker. Assignment itself goes through
  * `issues.update` (cycleId arg).
  */
@@ -372,7 +372,7 @@ export const analytics = orgQuery({
 
     // Scope removed: issues whose cycle_changed left this cycle and that
     // never came back. ponytail: org-wide activity scan capped at the 2000
-    // newest entries — add an activity-by-field index if orgs outgrow this.
+    // newest entries - add an activity-by-field index if orgs outgrow this.
     const orgActs = await ctx.db
       .query("activity")
       .withIndex("by_org", (q) => q.eq("orgId", ctx.org._id))

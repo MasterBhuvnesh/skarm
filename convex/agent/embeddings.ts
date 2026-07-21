@@ -114,7 +114,7 @@ export const ensureOrgEmbeddings = orgMutation({
   returns: v.null(),
   handler: async (ctx): Promise<null> => {
     if (!hasAiAccess(ctx.org)) {
-      // Silent no-op — semantic features are plan-gated elsewhere.
+      // Silent no-op - semantic features are plan-gated elsewhere.
       return null;
     }
     // The frozen schema has no "missing embedding" index; this org-scoped

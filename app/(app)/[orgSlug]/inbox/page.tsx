@@ -1,24 +1,73 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
+import { FunctionReturnType } from "convex/server";
 import { CheckCheck, Inbox, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatRelativeTime } from "@/components/issue-detail/format";
 import { GithubIcon } from "@/components/shared/github-icon";
 import { STATUSES } from "@/components/shared/issue-meta";
 import { cn } from "@/lib/utils";
 
+type Notification = FunctionReturnType<typeof api.notifications.list>[number];
+
+/** Tabs filter the already-fetched list client-side (it's capped at 50). */
+const TABS: {
+  value: string;
+  label: string;
+  empty: string;
+  match: (n: Notification) => boolean;
+}[] = [
+  {
+    value: "all",
+    label: "All",
+    empty:
+      "No notifications yet. Mentions, assignments and status changes on your issues will show up here.",
+    match: () => true,
+  },
+  {
+    value: "mention",
+    label: "Mentions",
+    empty: "No mentions yet.",
+    // "reply" isn't in the type union yet; compare as a string so it's picked
+    // up when another track adds it, without declaring the type here.
+    match: (n) => n.type === "mention" || (n.type as string) === "reply",
+  },
+  {
+    value: "assigned",
+    label: "Assigned",
+    empty: "No assignments yet.",
+    match: (n) => n.type === "assigned",
+  },
+  {
+    value: "status",
+    label: "Status",
+    empty: "No status changes yet.",
+    match: (n) => n.type === "status_changed" && !n.systemActor,
+  },
+  {
+    value: "github",
+    label: "GitHub",
+    empty: "No GitHub activity yet.",
+    match: (n) => n.systemActor === "github",
+  },
+];
+
 function actionText(notification: {
-  type: "mention" | "assigned" | "status_changed";
+  type: "mention" | "assigned" | "status_changed" | "reply";
   newValue?: string;
 }): string {
   switch (notification.type) {
     case "mention":
       return "mentioned you on";
+    case "reply":
+      return "replied to your comment on";
     case "assigned":
       return "assigned you";
     case "status_changed": {
@@ -36,8 +85,11 @@ export default function InboxPage() {
   const notifications = useQuery(api.notifications.list);
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
+  const [tab, setTab] = useState("mention");
 
   const unread = notifications?.filter((n) => !n.read).length ?? 0;
+  const activeTab = TABS.find((t) => t.value === tab) ?? TABS[0];
+  const filtered = notifications?.filter(activeTab.match) ?? [];
 
   const open = (notification: {
     _id: Id<"notifications">;
@@ -71,21 +123,40 @@ export default function InboxPage() {
           Mark all read
         </Button>
       </header>
+      <div className="flex h-9 shrink-0 items-center border-b px-2">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="h-7">
+            {TABS.map((t) => {
+              const count =
+                notifications?.filter((n) => !n.read && t.match(n)).length ?? 0;
+              return (
+                <TabsTrigger
+                  key={t.value}
+                  value={t.value}
+                  className="h-6 gap-1 px-2 text-xs"
+                >
+                  {t.label}
+                  {count > 0 && (
+                    <span className="text-muted-foreground">{count}</span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+        </Tabs>
+      </div>
       <ScrollArea className="min-h-0 flex-1">
         {notifications === undefined ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 className="size-4 animate-spin text-muted-foreground" />
           </div>
-        ) : notifications.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-32 text-center">
             <Inbox className="size-6 text-muted-foreground/50" />
-            <p className="text-sm text-muted-foreground">
-              No notifications yet. Mentions, assignments and status changes
-              on your issues will show up here.
-            </p>
+            <p className="text-sm text-muted-foreground">{activeTab.empty}</p>
           </div>
         ) : (
-          notifications.map((notification) => (
+          filtered.map((notification) => (
             <button
               key={notification._id}
               onClick={() => open(notification)}

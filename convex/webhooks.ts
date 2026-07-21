@@ -8,7 +8,7 @@ import { internalMutation, MutationCtx } from "./_generated/server";
  * tables so queries can join against them with indexes.
  *
  * Clerk billing uses dot-notation event names (subscription.updated,
- * subscriptionItem.canceled) — never Stripe-style names.
+ * subscriptionItem.canceled) - never Stripe-style names.
  */
 
 type ClerkUserData = {
@@ -176,7 +176,7 @@ async function deleteOrganization(ctx: MutationCtx, data: ClerkOrgData) {
     await ctx.db.delete(membership._id);
   }
   // Workspace data (teams/issues/...) is intentionally left for a future
-  // cleanup job — orgs are rarely deleted and cascading here would make
+  // cleanup job - orgs are rarely deleted and cascading here would make
   // webhook handling slow.
   await ctx.db.delete(org._id);
 }
@@ -203,7 +203,7 @@ async function upsertMembership(ctx: MutationCtx, data: ClerkMembershipData) {
     // the webhook return non-2xx so Svix retries; returning success here would
     // ACK the event and lose the membership forever.
     throw new Error(
-      `Membership sync: org or user not synced yet (${clerkOrgId}, ${clerkUserId}) — failing so Svix retries`
+      `Membership sync: org or user not synced yet (${clerkOrgId}, ${clerkUserId}) - failing so Svix retries`
     );
   }
 
@@ -269,7 +269,7 @@ async function syncSubscription(
   if (!org) {
     // Same out-of-order delivery race as memberships: fail so Svix retries.
     throw new Error(
-      `Subscription sync: org not synced yet (${clerkOrgId}) — failing so Svix retries`
+      `Subscription sync: org not synced yet (${clerkOrgId}) - failing so Svix retries`
     );
   }
 
@@ -305,7 +305,7 @@ async function syncSubscriptionItem(
   if (!org) {
     // Same out-of-order delivery race as memberships: fail so Svix retries.
     throw new Error(
-      `Subscription item sync: org not synced yet (${clerkOrgId}) — failing so Svix retries`
+      `Subscription item sync: org not synced yet (${clerkOrgId}) - failing so Svix retries`
     );
   }
 

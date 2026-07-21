@@ -43,7 +43,7 @@ export const listByIssue = orgQuery({
     };
 
     /**
-     * Assignee changes store raw user ids — resolve them to display names so
+     * Assignee changes store raw user ids - resolve them to display names so
      * the client never sees opaque ids.
      */
     const resolveValue = async (

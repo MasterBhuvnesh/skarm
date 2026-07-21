@@ -58,7 +58,7 @@ async function githubFetch<T>(
       Authorization: `Bearer ${token}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "cohere-issue-tracker",
+      "User-Agent": "skarm-issue-tracker",
       ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -74,7 +74,7 @@ async function githubFetch<T>(
 }
 
 // ponytail: a fresh installation token per call (2 requests/op, tokens are
-// valid 1h) — cache them in a table if rate limits ever bite.
+// valid 1h) - cache them in a table if rate limits ever bite.
 async function installationToken(installationId: number): Promise<string> {
   const data = await githubFetch<{ token: string }>(
     appJwt(),
@@ -111,7 +111,7 @@ async function fetchInstallationRepos(
 }
 
 /**
- * Live list of repositories the org's installation can access — powers the
+ * Live list of repositories the org's installation can access - powers the
  * repo pickers. Auth: resolved from the caller's Clerk identity.
  */
 type RepositoryInfo = {
@@ -140,7 +140,7 @@ export const listRepositories = action({
 
 /**
  * Pull the installation's repo list from the API and store it, instead of
- * waiting for the installation webhook — which races with completeSetup and
+ * waiting for the installation webhook - which races with completeSetup and
  * is dropped if it arrives before the integration row exists (leaving the
  * settings repo list stuck "Syncing…"). Scheduled on connect and callable
  * from the settings page to self-heal an already-connected workspace.
@@ -181,10 +181,10 @@ export const refreshRepositories = action({
 });
 
 function issueBody(description: string | undefined, identifier: string) {
-  return `${description ?? ""}\n\n---\n_Synced from Cohere issue **${identifier}**._`;
+  return `${description ?? ""}\n\n---\n_Synced from Skarm issue **${identifier}**._`;
 }
 
-/** Create the GitHub twin of a Cohere issue and record the link. */
+/** Create the GitHub twin of a Skarm issue and record the link. */
 export const pushIssue = internalAction({
   args: { issueId: v.id("issues"), repo: v.string() },
   returns: v.null(),
@@ -226,7 +226,7 @@ export const pushIssue = internalAction({
 
 /**
  * Mirror the current title/description/status onto every linked GitHub
- * issue. Pushes the full state, so rapid successive edits are idempotent —
+ * issue. Pushes the full state, so rapid successive edits are idempotent -
  * the last scheduled push wins.
  */
 export const pushIssueUpdate = internalAction({
@@ -271,7 +271,7 @@ export const pushIssueUpdate = internalAction({
   },
 });
 
-/** Surface a Cohere attachment on the linked GitHub issue(s) as a comment. */
+/** Surface a Skarm attachment on the linked GitHub issue(s) as a comment. */
 export const pushAttachmentComment = internalAction({
   args: {
     issueId: v.id("issues"),
@@ -295,7 +295,7 @@ export const pushAttachmentComment = internalAction({
           "POST",
           `/repos/${link.repo}/issues/${link.number}/comments`,
           {
-            body: `📎 Attachment added in Cohere: [${args.fileName}](${args.url})`,
+            body: `📎 Attachment added in Skarm: [${args.fileName}](${args.url})`,
           }
         );
         // Remember the comment so removing the attachment can delete it.
@@ -318,7 +318,7 @@ export const pushAttachmentComment = internalAction({
   },
 });
 
-/** Delete the GitHub comments that mirrored a removed Cohere attachment. */
+/** Delete the GitHub comments that mirrored a removed Skarm attachment. */
 export const deleteAttachmentComments = internalAction({
   args: {
     issueId: v.id("issues"),

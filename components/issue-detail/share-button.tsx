@@ -89,7 +89,7 @@ export function ShareButton({ issueId }: { issueId: Id<"issues"> }) {
           <div className="flex flex-col gap-2">
             <span className="text-xs font-medium">Share this issue</span>
             <p className="text-xs text-muted-foreground">
-              Create a public read-only link with a preview card — viewers
+              Create a public read-only link with a preview card - viewers
               don&apos;t need an account.
             </p>
             <Button size="sm" onClick={() => void createAndCopy()}>

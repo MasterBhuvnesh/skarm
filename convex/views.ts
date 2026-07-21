@@ -121,7 +121,7 @@ export const remove = orgMutation({
 });
 
 /**
- * Label assignments for every issue in a team — one round trip powering both
+ * Label assignments for every issue in a team - one round trip powering both
  * label chips on board cards and client-side label filtering.
  */
 export const teamIssueLabels = orgQuery({

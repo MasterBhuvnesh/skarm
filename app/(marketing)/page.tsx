@@ -11,7 +11,7 @@ import { LogoCloud } from "@/components/marketing/logo-cloud";
 import { Testimonials } from "@/components/marketing/testimonials";
 
 export const metadata: Metadata = {
-  title: "Cohere - The AI-Native Issue Tracker",
+  title: "Skarm - The AI-Native Issue Tracker",
   description:
     "Plan, track, and ship faster with issues, boards, and cycles in a keyboard-first workspace - powered by AI that handles the busywork. Free for teams of 3.",
 };

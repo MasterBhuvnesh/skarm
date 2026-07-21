@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 /**
  * Dub-style feature selector that floats above the hero screenshot: three
  * pillar tabs where the active one lifts into an elevated card. Purely a
- * visual highlight — the mock below is illustrative.
+ * visual highlight - the mock below is illustrative.
  */
 const TABS = [
   {

@@ -39,7 +39,7 @@ import {
 } from "@/components/projects/project-meta";
 import { IssueProgressBar } from "@/components/projects/progress-bar";
 
-/** Cycle detail — Track B. Time-box header, progress, and scheduled issues. */
+/** Cycle detail - Track B. Time-box header, progress, and scheduled issues. */
 export default function CycleDetailPage() {
   const params = useParams<{ orgSlug: string; cycleId: string }>();
   const cycleId = params.cycleId as Id<"cycles">;

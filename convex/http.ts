@@ -157,7 +157,7 @@ http.route({
       return new Response(null, { status: 200 });
     }
 
-    // GitHub → Cohere issue sync. Bot senders are skipped: our own PATCHes
+    // GitHub → Skarm issue sync. Bot senders are skipped: our own PATCHes
     // and attachment comments echo back as webhook events from the app bot,
     // and reacting to them would loop.
     if (eventType === "issues" || eventType === "issue_comment") {
@@ -251,7 +251,7 @@ http.route({
     );
     if (orgSlug === null) {
       return new Response(
-        "This install link expired — retry Connect from Settings → Integrations.",
+        "This install link expired - retry Connect from Settings → Integrations.",
         { status: 400 }
       );
     }
@@ -300,7 +300,7 @@ http.route({
     if (!exchange.ok) {
       console.error("Figma token exchange failed", await exchange.text());
       return new Response(
-        "Figma authorization failed — retry Connect from Settings → Integrations.",
+        "Figma authorization failed - retry Connect from Settings → Integrations.",
         { status: 400 }
       );
     }
@@ -321,7 +321,7 @@ http.route({
     );
     if (orgSlug === null) {
       return new Response(
-        "This connect link expired — retry Connect from Settings → Integrations.",
+        "This connect link expired - retry Connect from Settings → Integrations.",
         { status: 400 }
       );
     }

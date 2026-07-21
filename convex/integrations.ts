@@ -212,7 +212,7 @@ export const beginFigmaConnect = orgAdminMutation({
       throw new Error("FIGMA_CLIENT_ID is not set on the Convex deployment");
     }
     const nonce = crypto.randomUUID();
-    // ponytail: reuses the GitHub install-state table — it's just
+    // ponytail: reuses the GitHub install-state table - it's just
     // (orgId, userId, nonce); rename to oauthStates if a third OAuth lands.
     await ctx.db.insert("githubInstallStates", {
       orgId: ctx.org._id,
@@ -351,7 +351,7 @@ export const completeSetup = internalMutation({
       });
     }
 
-    // Pull the repo list from the API now — the installation webhook that
+    // Pull the repo list from the API now - the installation webhook that
     // carries it races with this mutation and is dropped if it arrives first.
     await ctx.scheduler.runAfter(0, internal.github.client.syncRepositories, {
       installationId: args.installationId,

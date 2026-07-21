@@ -43,7 +43,7 @@ export function ProjectRow({
         className="hidden w-44 shrink-0 md:flex"
       />
       <span className="hidden w-14 shrink-0 text-right text-xs text-muted-foreground lg:block">
-        {project.targetDate ? formatDay(project.targetDate) : "—"}
+        {project.targetDate ? formatDay(project.targetDate) : "-"}
       </span>
       {lead ? (
         <UserAvatar name={lead.name} imageUrl={lead.imageUrl} />

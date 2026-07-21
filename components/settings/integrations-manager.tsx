@@ -388,7 +388,7 @@ function FigmaCard({ isAdmin }: { isAdmin: boolean }) {
           <div className="flex flex-col gap-3 p-4">
             <p className="text-xs text-muted-foreground">
               Paste a Figma file or frame link on any issue (Figma section in
-              the issue sidebar) — the design&apos;s name and a thumbnail are
+              the issue sidebar) - the design&apos;s name and a thumbnail are
               fetched automatically.
             </p>
             {isAdmin && (

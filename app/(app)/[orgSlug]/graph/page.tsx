@@ -50,7 +50,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const nodeTypes = { issue: IssueNode };
 
-const DRAG_TYPE = "application/cohere-issue";
+const DRAG_TYPE = "application/skarm-issue";
 
 type GraphData = FunctionReturnType<typeof api.graph.forScope>;
 type RelationType = "blocks" | "blocked_by" | "related" | "duplicate_of";
@@ -360,7 +360,7 @@ function GraphInner() {
     // projectId, a cycle graph reassigns cycleId.
     const current = kind === "project" ? dropped.projectId : dropped.cycleId;
     if (current && current !== scopeId) {
-      // Already in a different project/cycle — ask before moving it.
+      // Already in a different project/cycle - ask before moving it.
       setPendingDrop({
         issueId: dropped.id,
         identifier: dropped.identifier,
@@ -446,7 +446,7 @@ function GraphInner() {
           )}
           {scopeArgs !== null && data !== undefined && data.nodes.length === 0 && (
             <p className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted-foreground">
-              Nothing here yet — search on the right and drag issues onto the
+              Nothing here yet - search on the right and drag issues onto the
               canvas.
             </p>
           )}
@@ -497,7 +497,7 @@ function GraphInner() {
               This graph maps one {kind ?? "project or cycle"}, so every node
               lives in the same {kind ?? "scope"} and relations are drawn
               between them. Dragging an issue onto the canvas adds it to this{" "}
-              {kind ?? "scope"} — if it&apos;s already in another one,
+              {kind ?? "scope"} - if it&apos;s already in another one,
               you&apos;ll be asked first. Drag from a card&apos;s right dot to
               another card&apos;s left dot to link them; click an edge to
               remove it.

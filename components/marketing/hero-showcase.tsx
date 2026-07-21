@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * The hero product showcase: a subtly-lighter panel holding the app mock,
- * with a "connected tab" top edge — the panel surface runs straight, then
+ * with a "connected tab" top edge - the panel surface runs straight, then
  * curves up around the three pillar tabs (Dub-style), then continues. The
  * curve is the boundary between the page background and the panel colour,
  * drawn with radial-gradient concave corners so it stays crisp at any width.

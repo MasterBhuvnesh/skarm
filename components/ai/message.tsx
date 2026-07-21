@@ -116,7 +116,7 @@ export function AiMessage({ message }: { message: UIMessage }) {
           )}
         >
           <CircleAlert className="size-3" />
-          Cohere couldn&apos;t finish this response. Try sending your message
+          Skarm couldn&apos;t finish this response. Try sending your message
           again.
         </p>
       )}

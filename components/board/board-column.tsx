@@ -5,7 +5,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,9 @@ export function BoardColumn({
   labelsByIssue,
   assigneesById,
   onOpenIssue,
+  canLoadMore,
+  isLoadingMore,
+  onLoadMore,
 }: {
   status: IssueStatus;
   label: string;
@@ -35,6 +38,9 @@ export function BoardColumn({
   labelsByIssue: Map<Id<"issues">, CardLabel[]>;
   assigneesById: Map<string, CardAssignee>;
   onOpenIssue: (issueId: Id<"issues">) => void;
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+  onLoadMore: () => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `${COLUMN_ID_PREFIX}${status}`,
@@ -47,7 +53,10 @@ export function BoardColumn({
       <div className="flex h-10 shrink-0 items-center gap-2 px-3">
         <StatusIcon status={status} />
         <span className="text-sm font-medium">{label}</span>
-        <span className="text-xs text-muted-foreground">{issues.length}</span>
+        <span className="text-xs text-muted-foreground">
+          {issues.length}
+          {canLoadMore || isLoadingMore ? "+" : ""}
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -90,7 +99,25 @@ export function BoardColumn({
               onOpen={() => onOpenIssue(issue._id)}
             />
           ))}
-          {issues.length === 0 && !composerOpen ? (
+          {canLoadMore || isLoadingMore ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 w-full text-xs text-muted-foreground"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                "Load more"
+              )}
+            </Button>
+          ) : null}
+          {issues.length === 0 &&
+          !composerOpen &&
+          !canLoadMore &&
+          !isLoadingMore ? (
             <button
               onClick={() => setComposerOpen(true)}
               className="flex h-14 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground/70 transition-colors hover:border-muted-foreground/40 hover:text-muted-foreground"

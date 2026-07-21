@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, SmilePlus } from "lucide-react";
 import { ReactNode, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
@@ -14,9 +14,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CommentBody } from "@/components/issue-detail/comment-body";
+import {
+  REACTION_ICONS,
+  reactionKey,
+} from "@/components/issue-detail/reaction-icons";
 import { CommentComposer } from "@/components/issue-detail/comment-composer";
 import { formatRelativeTime } from "@/components/issue-detail/format";
 import {
@@ -52,6 +61,22 @@ const RELATION_ADDED_PHRASES: Record<string, string> = {
   duplicate_of: "marked this as a duplicate of",
   duplicated_by: "marked this as duplicated by",
 };
+
+/** Emoji offered in the reaction picker. */
+const REACTION_EMOJIS = ["👍", "❤️", "😄", "🎉", "👀", "🚀"];
+
+/** Freehand Duotone icon for a reaction, falling back to the raw emoji
+    for values outside the fixed set (older data, future additions). */
+function ReactionGlyph({
+  emoji,
+  className,
+}: {
+  emoji: string;
+  className: string;
+}) {
+  const Icon = REACTION_ICONS[reactionKey(emoji)];
+  return Icon ? <Icon className={className} /> : <span>{emoji}</span>;
+}
 
 function Emphasis({ children }: { children: ReactNode }) {
   return <span className="font-medium text-foreground">{children}</span>;
@@ -140,7 +165,7 @@ function describeActivity(entry: ActivityEntry): ReactNode {
     case "figma_linked":
       return <>linked a Figma design</>;
     case "cycle_changed":
-      // Values are raw cycle ids — not display-worthy, so stay generic.
+      // Values are raw cycle ids - not display-worthy, so stay generic.
       return newValue ? (
         <>moved this issue into a cycle</>
       ) : (
@@ -155,7 +180,7 @@ function describeActivity(entry: ActivityEntry): ReactNode {
     case "github_sync_failed":
       return (
         <>
-          couldn&apos;t sync this issue to GitHub —{" "}
+          couldn&apos;t sync this issue to GitHub -{" "}
           <Emphasis>{newValue}</Emphasis>
         </>
       );
@@ -189,15 +214,17 @@ export function ActivitySection({ issue }: IssueDetailSlotProps) {
     "admin";
 
   const items = useMemo<FeedItem[]>(() => {
-    const feed: FeedItem[] = (comments ?? []).map((comment) => ({
-      kind: "comment",
-      time: comment._creationTime,
-      key: comment._id,
-      comment,
-    }));
+    const feed: FeedItem[] = (comments ?? [])
+      .filter((comment) => !comment.parentId)
+      .map((comment) => ({
+        kind: "comment",
+        time: comment._creationTime,
+        key: comment._id,
+        comment,
+      }));
     if (filter === "all") {
       for (const entry of activity ?? []) {
-        // Comments render themselves — skip their "commented" log entries.
+        // Comments render themselves - skip their "commented" log entries.
         if (entry.type === "commented") {
           continue;
         }
@@ -211,6 +238,19 @@ export function ActivitySection({ issue }: IssueDetailSlotProps) {
     }
     return feed.sort((a, b) => a.time - b.time);
   }, [comments, activity, filter]);
+
+  // Replies grouped under their (root) parent; the feed shows top-level only.
+  const repliesByParent = useMemo(() => {
+    const map = new Map<Id<"comments">, EnrichedComment[]>();
+    for (const comment of comments ?? []) {
+      if (comment.parentId) {
+        const list = map.get(comment.parentId) ?? [];
+        list.push(comment);
+        map.set(comment.parentId, list);
+      }
+    }
+    return map;
+  }, [comments]);
 
   const loading = comments === undefined || activity === undefined;
 
@@ -243,17 +283,19 @@ export function ActivitySection({ issue }: IssueDetailSlotProps) {
         </div>
       ) : items.length === 0 ? (
         <p className="py-2 text-xs text-muted-foreground">
-          No comments yet — start the conversation.
+          No comments yet - start the conversation.
         </p>
       ) : (
         <div className="flex flex-col gap-3">
           {items.map((item) =>
             item.kind === "comment" ? (
-              <CommentItem
+              <CommentThread
                 key={item.key}
                 comment={item.comment}
-                isOwn={item.comment.authorId === currentUser?._id}
+                replies={repliesByParent.get(item.comment._id) ?? []}
+                currentUserId={currentUser?._id}
                 isAdmin={isAdmin}
+                issueId={issue._id}
               />
             ) : (
               <div
@@ -293,10 +335,14 @@ function CommentItem({
   comment,
   isOwn,
   isAdmin,
+  isReply = false,
+  onReply,
 }: {
   comment: EnrichedComment;
   isOwn: boolean;
   isAdmin: boolean;
+  isReply?: boolean;
+  onReply?: () => void;
 }) {
   const updateComment = useMutation(api.comments.update);
   const removeComment = useMutation(api.comments.remove);
@@ -344,12 +390,21 @@ function CommentItem({
   };
 
   return (
-    <div className="rounded-lg border bg-card/50">
-      <div className="flex items-center gap-2 px-3 pt-2.5">
+    <div className={isReply ? "flex flex-col" : "rounded-lg border bg-card/50"}>
+      <div
+        className={cn(
+          "flex items-center gap-2",
+          isReply ? "pt-0.5" : "px-3 pt-2.5"
+        )}
+      >
         {comment.external ? (
-          <GithubIcon className="size-5" />
+          <GithubIcon className={isReply ? "size-4" : "size-5"} />
         ) : (
-          <UserAvatar name={comment.authorName} imageUrl={comment.authorImageUrl} />
+          <UserAvatar
+            name={comment.authorName}
+            imageUrl={comment.authorImageUrl}
+            className={isReply ? "size-5" : undefined}
+          />
         )}
         <span className="text-xs font-medium">{comment.authorName}</span>
         {comment.external && (
@@ -385,7 +440,7 @@ function CommentItem({
           </DropdownMenu>
         )}
       </div>
-      <div className="px-3 pb-3 pt-1.5">
+      <div className={isReply ? "pt-1" : "px-3 pb-3 pt-1.5"}>
         {editing ? (
           <div>
             <MentionTextarea
@@ -418,11 +473,228 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <CommentBody
-            body={comment.body}
-            mentionedUsers={comment.mentionedUsers}
-          />
+          <>
+            <CommentBody
+              body={comment.body}
+              mentionedUsers={comment.mentionedUsers}
+            />
+            <div className="mt-1.5">
+              <ReactionRow
+                comment={comment}
+                isReply={isReply}
+                onReply={onReply}
+              />
+            </div>
+          </>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Grouped reaction pills plus an add-reaction picker and (top-level) Reply. */
+function ReactionRow({
+  comment,
+  isReply,
+  onReply,
+}: {
+  comment: EnrichedComment;
+  isReply: boolean;
+  onReply?: () => void;
+}) {
+  const toggleReaction = useMutation(api.comments.toggleReaction);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const react = (emoji: string) => {
+    toggleReaction({ commentId: comment._id, emoji }).catch(
+      (error: unknown) => {
+        toast.error(error instanceof Error ? error.message : "Failed to react");
+      }
+    );
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {comment.reactions.map((reaction) => (
+        <button
+          key={reaction.emoji}
+          type="button"
+          title={reaction.names.join(", ")}
+          onClick={() => react(reaction.emoji)}
+          className={cn(
+            // Filled neutral chip so full-colour emoji (e.g. the near-white
+            // 👀) keep contrast on both the light and dark comment surface.
+            "flex h-6 items-center gap-1 rounded-full border px-2 text-xs transition-colors",
+            reaction.reactedByMe
+              ? "border-primary/30 bg-primary/15"
+              : "bg-muted hover:bg-muted/70"
+          )}
+        >
+          <ReactionGlyph emoji={reaction.emoji} className="size-3.5" />
+          <span className="text-muted-foreground">{reaction.count}</span>
+        </button>
+      ))}
+      <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-6 text-muted-foreground"
+            aria-label="Add reaction"
+          >
+            <SmilePlus className="size-3.5" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-auto flex-row gap-1 p-1.5">
+          {REACTION_EMOJIS.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => {
+                react(emoji);
+                setPickerOpen(false);
+              }}
+              className="flex size-8 items-center justify-center rounded-md bg-muted/40 transition-colors hover:bg-accent"
+              aria-label={`React with ${emoji}`}
+            >
+              <ReactionGlyph emoji={emoji} className="size-5" />
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+      {!isReply && onReply && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 px-2 text-xs text-muted-foreground"
+          onClick={onReply}
+        >
+          Reply
+        </Button>
+      )}
+    </div>
+  );
+}
+
+/** A top-level comment with its (one-level-deep) replies and reply composer. */
+function CommentThread({
+  comment,
+  replies,
+  currentUserId,
+  isAdmin,
+  issueId,
+}: {
+  comment: EnrichedComment;
+  replies: EnrichedComment[];
+  currentUserId: Id<"users"> | undefined;
+  isAdmin: boolean;
+  issueId: Id<"issues">;
+}) {
+  const [replying, setReplying] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-2">
+      <CommentItem
+        comment={comment}
+        isOwn={comment.authorId === currentUserId}
+        isAdmin={isAdmin}
+        onReply={() => setReplying((value) => !value)}
+      />
+      {(replies.length > 0 || replying) && (
+        <div className="ml-8 flex flex-col gap-2 border-l pl-3">
+          {replies.map((reply) => (
+            <CommentItem
+              key={reply._id}
+              comment={reply}
+              isOwn={reply.authorId === currentUserId}
+              isAdmin={isAdmin}
+              isReply
+            />
+          ))}
+          {replying && (
+            <ReplyComposer
+              issueId={issueId}
+              parentId={comment._id}
+              onDone={() => setReplying(false)}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Inline composer for a reply; reuses the mention flow of the main composer. */
+function ReplyComposer({
+  issueId,
+  parentId,
+  onDone,
+}: {
+  issueId: Id<"issues">;
+  parentId: Id<"comments">;
+  onDone: () => void;
+}) {
+  const createComment = useMutation(api.comments.create);
+  const [value, setValue] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const trackedMentions = useRef(new Map<Id<"users">, string>());
+
+  const submit = async () => {
+    const body = value.trim();
+    if (!body || submitting) {
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createComment({
+        issueId,
+        body,
+        parentId,
+        mentions: resolveMentions(body, trackedMentions.current),
+      });
+      onDone();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to post reply"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="rounded-lg border bg-card/50 px-3 py-2"
+      onKeyDown={(e) => {
+        // Esc closes, unless the mention popup already consumed the key.
+        if (e.key === "Escape" && !e.defaultPrevented) {
+          onDone();
+        }
+      }}
+    >
+      <MentionTextarea
+        value={value}
+        onChange={setValue}
+        onMention={({ userId, name }) =>
+          trackedMentions.current.set(userId, name)
+        }
+        onSubmit={() => void submit()}
+        placeholder="Write a reply… (@ to mention)"
+        autoFocus
+        disabled={submitting}
+      />
+      <div className="flex justify-end gap-2 pt-1">
+        <Button variant="ghost" size="sm" className="h-7" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button
+          size="sm"
+          className="h-7"
+          disabled={!value.trim() || submitting}
+          onClick={() => void submit()}
+        >
+          Reply
+        </Button>
       </div>
     </div>
   );

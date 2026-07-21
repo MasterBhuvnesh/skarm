@@ -1,7 +1,7 @@
 /**
  * Single source of truth for Clerk billing plan data (Track E).
  *
- * Plan ids/slugs live here and ONLY here — never inline them in components.
+ * Plan ids/slugs live here and ONLY here - never inline them in components.
  * `convex/lib/limits.ts` is the authoritative enforcement of free-tier caps;
  * the numbers here mirror it for display purposes.
  */

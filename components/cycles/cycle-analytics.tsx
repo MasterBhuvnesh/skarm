@@ -101,7 +101,7 @@ function BurndownChart({
           r="2.5"
           fill="var(--primary)"
         >
-          <title>{`${fmt(d.date)} — ${d.remaining} points remaining`}</title>
+          <title>{`${fmt(d.date)} - ${d.remaining} points remaining`}</title>
         </circle>
       ))}
       {/* x labels: start + end */}
@@ -182,7 +182,7 @@ function VelocityChart({
               fill="var(--primary)"
               opacity={entry.current ? 1 : 0.45}
             >
-              <title>{`${entry.label} — ${entry.points} points completed`}</title>
+              <title>{`${entry.label} - ${entry.points} points completed`}</title>
             </rect>
             <text
               x={xPos + barW / 2}
@@ -222,7 +222,7 @@ export function CycleAnalytics({ cycle }: { cycle: Doc<"cycles"> }) {
   }
 
   if (analytics.totalPoints === 0 && analytics.removedPoints === 0) {
-    return null; // nothing scheduled yet — the issue list's empty state covers it
+    return null; // nothing scheduled yet - the issue list's empty state covers it
   }
 
   return (
@@ -237,7 +237,7 @@ export function CycleAnalytics({ cycle }: { cycle: Doc<"cycles"> }) {
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-lg border p-3">
           <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-            Burndown — points remaining
+            Burndown - points remaining
           </h3>
           <BurndownChart
             days={analytics.days}
@@ -247,7 +247,7 @@ export function CycleAnalytics({ cycle }: { cycle: Doc<"cycles"> }) {
         </div>
         <div className="rounded-lg border p-3">
           <h3 className="mb-2 text-xs font-medium text-muted-foreground">
-            Velocity — points completed per cycle
+            Velocity - points completed per cycle
           </h3>
           <VelocityChart velocity={analytics.velocity} />
         </div>

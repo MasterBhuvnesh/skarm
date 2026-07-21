@@ -6,7 +6,7 @@ import { issuePriorityValidator, issueStatusValidator } from "./schema";
 
 /**
  * Public read-only issue sharing. A share is a single unguessable token; the
- * public page and OG image read through `getByToken` (a PUBLIC query — no
+ * public page and OG image read through `getByToken` (a PUBLIC query - no
  * auth, so it must only ever look up by token and return sanitized fields).
  */
 
@@ -81,7 +81,7 @@ const publicIssueValidator = v.object({
 
 /**
  * PUBLIC: resolve a share token to a sanitized read-only issue view.
- * No auth on purpose — the token is the entire capability. Never expose
+ * No auth on purpose - the token is the entire capability. Never expose
  * assignees, comments, attachments, or raw ids here.
  */
 export const getByToken = query({
@@ -124,7 +124,7 @@ export const getByToken = query({
       labels,
       createdAt: issue._creationTime,
       teamName: team?.name ?? "Team",
-      orgName: org?.name ?? "a Cohere workspace",
+      orgName: org?.name ?? "a Skarm workspace",
     };
   },
 });

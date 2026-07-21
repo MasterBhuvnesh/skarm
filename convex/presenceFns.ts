@@ -25,7 +25,7 @@ export const heartbeat = orgMutation({
     sessionToken: v.string(),
   }),
   handler: async (ctx, args) => {
-    // Rooms are issues — only org members of the issue's org may join.
+    // Rooms are issues - only org members of the issue's org may join.
     const issueId = ctx.db.normalizeId("issues", args.roomId);
     if (!issueId) {
       throw new Error("Invalid presence room");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, usePaginatedQuery } from "convex/react";
 import { Columns3, List, Loader2, Plus, Search } from "lucide-react";
 import Link from "next/link";
 import {
@@ -20,8 +20,9 @@ import {
 } from "@/components/ui/input-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCommands } from "@/components/commands/command-provider";
-import { BoardView } from "@/components/board/board-view";
+import { BoardView, ColumnPagination } from "@/components/board/board-view";
 import { CardAssignee, CardLabel } from "@/components/board/board-card";
+import { IssueStatus } from "@/components/shared/issue-meta";
 import { FilterBar } from "@/components/views/filter-bar";
 import { FilteredIssueList } from "@/components/views/filtered-issue-list";
 import {
@@ -42,6 +43,22 @@ function CenteredSpinner() {
       <Loader2 className="size-4 animate-spin text-muted-foreground" />
     </div>
   );
+}
+
+const BOARD_PAGE_SIZE = 50;
+const BOARD_PAGE_OPTS = { initialNumItems: BOARD_PAGE_SIZE };
+
+type PaginatedColumn = {
+  status: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
+  loadMore: (numItems: number) => void;
+};
+
+function columnPagination(column: PaginatedColumn): ColumnPagination {
+  return {
+    canLoadMore: column.status === "CanLoadMore",
+    isLoadingMore: column.status === "LoadingMore",
+    loadMore: () => column.loadMore(BOARD_PAGE_SIZE),
+  };
 }
 
 /**
@@ -66,7 +83,56 @@ function TeamBoardContent() {
   const { openCreateIssue } = useCommands();
 
   const team = useQuery(api.teams.get, { teamId });
-  const issues = useQuery(api.issues.listByTeam, { teamId });
+  // One paginated subscription per status column. Rules-of-hooks forbids
+  // looping hook calls, so the six statuses are spelled out explicitly.
+  const backlog = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "backlog" },
+    BOARD_PAGE_OPTS
+  );
+  const todo = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "todo" },
+    BOARD_PAGE_OPTS
+  );
+  const inProgress = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "in_progress" },
+    BOARD_PAGE_OPTS
+  );
+  const inReview = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "in_review" },
+    BOARD_PAGE_OPTS
+  );
+  const done = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "done" },
+    BOARD_PAGE_OPTS
+  );
+  const canceled = usePaginatedQuery(
+    api.issues.listByTeamStatusPaginated,
+    { teamId, status: "canceled" },
+    BOARD_PAGE_OPTS
+  );
+  const issues = useMemo(
+    () => [
+      ...backlog.results,
+      ...todo.results,
+      ...inProgress.results,
+      ...inReview.results,
+      ...done.results,
+      ...canceled.results,
+    ],
+    [
+      backlog.results,
+      todo.results,
+      inProgress.results,
+      inReview.results,
+      done.results,
+      canceled.results,
+    ]
+  );
   const labelRows = useQuery(api.views.teamIssueLabels, { teamId });
   const members = useQuery(api.organizations.listMembers);
   const orgLabels = useQuery(api.labels.list);
@@ -136,7 +202,16 @@ function TeamBoardContent() {
     [issues, filters, labelIdsByIssue, searchedIds]
   );
 
-  if (team === undefined || issues === undefined) {
+  const loadingFirstPage = [
+    backlog,
+    todo,
+    inProgress,
+    inReview,
+    done,
+    canceled,
+  ].some((column) => column.status === "LoadingFirstPage");
+
+  if (team === undefined || loadingFirstPage) {
     return <CenteredSpinner />;
   }
 
@@ -147,6 +222,15 @@ function TeamBoardContent() {
       </div>
     );
   }
+
+  const pagination: Record<IssueStatus, ColumnPagination> = {
+    backlog: columnPagination(backlog),
+    todo: columnPagination(todo),
+    in_progress: columnPagination(inProgress),
+    in_review: columnPagination(inReview),
+    done: columnPagination(done),
+    canceled: columnPagination(canceled),
+  };
 
   return (
     <>
@@ -221,6 +305,7 @@ function TeamBoardContent() {
           orgSlug={params.orgSlug}
           labelsByIssue={labelsByIssue}
           assigneesById={assigneesById}
+          pagination={pagination}
         />
       ) : (
         <FilteredIssueList

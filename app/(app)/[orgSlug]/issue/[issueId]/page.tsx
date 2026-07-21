@@ -20,7 +20,7 @@ import {
 } from "@/components/issue-detail/slots";
 
 /**
- * Issue detail — foundation skeleton with extension slots. Track C fills in
+ * Issue detail - foundation skeleton with extension slots. Track C fills in
  * comments/activity/attachments/relations; Track D adds AI triage panels.
  */
 export default function IssueDetailPage() {

@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { PublicIssueView } from "@/components/share/public-issue-view";
 
 /**
- * Public read-only issue page — reachable signed-out (proxy.ts allows
+ * Public read-only issue page - reachable signed-out (proxy.ts allows
  * /share). The token in the URL is the entire capability; the Convex query
  * returns a sanitized view or null for revoked/unknown tokens.
  */
@@ -30,7 +30,7 @@ export async function generateMetadata({
     title: `${issue.identifier} · ${issue.title}`,
     description:
       issue.description?.slice(0, 150) ||
-      `An issue shared from ${issue.orgName} on Cohere.`,
+      `An issue shared from ${issue.orgName} on Skarm.`,
   };
 }
 
@@ -55,7 +55,7 @@ export default async function SharedIssuePage({
           href="/"
           className="mt-2 text-sm underline underline-offset-4 hover:text-foreground"
         >
-          What is Cohere?
+          What is Skarm?
         </Link>
       </div>
     );

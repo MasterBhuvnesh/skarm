@@ -21,7 +21,7 @@ import {
  * Internal data layer for the AI agent (Track D).
  *
  * Every function takes an explicit, server-supplied `orgId` (resolved from the
- * authenticated context by the public entry points — NEVER from model output)
+ * authenticated context by the public entry points - NEVER from model output)
  * and re-verifies that every loaded document belongs to that org.
  */
 
@@ -307,7 +307,7 @@ export const issueSummariesByIds = internalQuery({
     const summaries = [];
     for (const issueId of args.issueIds) {
       const issue = await ctx.db.get(issueId);
-      // Silently skip anything outside the caller's org (defense in depth —
+      // Silently skip anything outside the caller's org (defense in depth -
       // vector search is already filtered by orgId).
       if (!issue || issue.orgId !== args.orgId) {
         continue;

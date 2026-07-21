@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 /**
  * Organization chooser for /onboarding. Controlled (via useOrganizationList)
  * rather than the prebuilt <OrganizationList> so that:
- *  - accepting an invite revalidates the membership list in place — the
+ *  - accepting an invite revalidates the membership list in place - the
  *    joined org appears immediately, no full-page refresh (#9); and
  *  - when the user already has an ACTIVE org (e.g. just created one through
  *    Clerk's sign-up task), we redirect straight into it instead of showing

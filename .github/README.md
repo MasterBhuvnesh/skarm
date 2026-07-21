@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="../public/cohere.png" alt="Cohere logo" width="80" />
+<img src="../public/skarm-tile.svg" alt="Skarm logo" width="80" />
 
-# COHERE
+# SKARM
 
 A modern issue tracker for teams that plan, track, and ship together. Multi-tenant workspaces, real-time boards, B2B billing, an AI agent, a dependency graph, and two-way GitHub + Figma sync, built with Next.js 16, Convex, and Clerk.
 
@@ -23,12 +23,17 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 - Kanban board with drag and drop (@dnd-kit) and fractional sort ordering; moves sync to all clients instantly
 - Full-text search over issue titles AND descriptions, with search bars on the issues list and board views showing why a result matched
 - Issue templates per team (prefilled title, description, priority, labels) and recurring issues: rituals like weekly standups created automatically on a daily/weekdays/weekly/monthly cadence
+- Duplicate warning at creation: typing a title live-searches the whole workspace and surfaces similar issues before you file a twin
+- Built to scale: cursor-paginated issue queries (auto-loading list, per-column board pagination) and CSS content-visibility virtualization keep 10k-issue orgs fast
+- My Issues dashboard on the workspace home: assigned to you grouped by status, created by you, with a closed-issues toggle
 - Command palette (Cmd+K) and single-key shortcuts
 
 ### COLLABORATION
 
-- Comments with @mentions and a full activity feed per issue
-- Inbox with in-app notifications for @mentions, assignments, and status changes, with a live unread badge in the sidebar
+- Comments with @mentions, emoji reactions (👍 ❤️ 😄 🎉 👀 🚀 with who-reacted tooltips), one-level reply threads, and a full activity feed per issue
+- Inbox with tabs (All / Mentions / Assigned / Status / GitHub), unread counts per tab, and a live unread badge in the sidebar
+- Notification preferences: per-channel switches (mentions, assignments, status changes, GitHub activity) enforced at the single server-side notification choke point
+- Email digests via AWS SES: each member picks morning/evening delivery, daily/weekly/custom weekdays, and content sections (assigned, in progress, mentions, needs-focus); empty digests are skipped and delivery follows the member's local timezone
 - Sub-issues and issue relations (blocks, blocked by, related, duplicate of)
 - File attachments via Convex storage
 - Live presence: see who is viewing the same issue
@@ -49,7 +54,7 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 - One-click connect: users pick repositories on GitHub's install screen; the repo list is pulled from the API, no manual webhook setup per workspace
 - Projects connect one or more repos (live-fetched picker with Public/Private badges, shows who connected)
 - "Also create this issue on GitHub" at creation; edits, status changes, and attachments mirror to the GitHub twin (merged PR → Done closes it)
-- Two-way sync: editing, closing/reopening, or commenting on the linked GitHub issue reflects back into Cohere; bot echoes are filtered to avoid loops
+- Two-way sync: editing, closing/reopening, or commenting on the linked GitHub issue reflects back into Skarm; bot echoes are filtered to avoid loops
 - PRs link to issues via `ENG-42` in branch names, titles, or bodies; opened PRs move issues to In Review, merged PRs to Done
 - All automated events appear in the timeline and inbox as a dedicated GitHub system actor, never as a user
 
@@ -62,8 +67,8 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 ### AI AGENT (PRO AND ENTERPRISE)
 
 - Workspace-aware chat with org-scoped tools: create, update, and search issues, summarize cycles, report project status
-- AI issue drafting: one-line idea → full spec with acceptance criteria, priority, estimate, labels, sub-issues, and relations to real existing issues — with prompt guidance, length control (short → thorough), rephrase, and discard
-- Duplicate detection via 1536-dim vector embeddings on every issue
+- AI issue drafting: one-line idea → full spec with acceptance criteria, priority, estimate, labels, sub-issues, and relations to real existing issues - with prompt guidance, length control (short → thorough), rephrase, and discard
+- Duplicate detection via 4096-dim vector embeddings (NVIDIA NV-Embed) on every issue
 - Triage assist: AI-suggested priority and labels for new issues
 - Chat and drafting share one allowance: 50 messages/user/day on Pro, unlimited on Enterprise
 
@@ -96,7 +101,8 @@ flowchart TB
     GHHTTP --> Convex
     Convex -->|"Issue + repo sync via installation tokens"| GitHub
     Convex <-->|"OAuth: previews, comments, dev resources"| Figma[Figma REST API]
-    Convex -->|"Agent tools + embeddings"| OpenAI[OpenAI]
+    Convex -->|"Agent tools + embeddings"| NVIDIA[NVIDIA NIM]
+    Convex -->|"Email digests via SMTP"| SES[AWS SES]
     Convex -->|"File storage"| Storage[Convex Storage]
     Browser -->|"proxy.ts middleware"| Clerk
 ```
@@ -117,9 +123,11 @@ pnpm dev   # runs Next.js and Convex in parallel
 
 Full setup lives in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md):
 
-- **App setup** — `.env.local`, Clerk (JWT template, billing plans, webhooks), Convex env vars, deployment, and a troubleshooting table
-- **GitHub integration** — creating the GitHub App (webhook + setup URLs, permissions), `GITHUB_APP_SLUG` / `GITHUB_WEBHOOK_SECRET` / `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` (base64) env vars, and how the install → webhook → sync flow works
-- **Figma integration** — creating the Figma OAuth app (redirect URI, granular scopes) and the `FIGMA_CLIENT_ID` / `FIGMA_CLIENT_SECRET` env vars
+- **App setup** - `.env.local`, Clerk (JWT template, billing plans, webhooks), Convex env vars, deployment, and a troubleshooting table
+- **GitHub integration** - creating the GitHub App (webhook + setup URLs, permissions), `GITHUB_APP_SLUG` / `GITHUB_WEBHOOK_SECRET` / `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` (base64) env vars, and how the install → webhook → sync flow works
+- **Figma integration** - creating the Figma OAuth app (redirect URI, granular scopes) and the `FIGMA_CLIENT_ID` / `FIGMA_CLIENT_SECRET` env vars
+- **Email digests** - SES SMTP env vars (`SES_SMTP_USER/PASSWORD/HOST`, `SES_FROM_EMAIL`, `APP_URL`), sandbox caveats, and the hourly delivery sweep
+- **AI models** - where the chat + embedding models live (`convex/agent/models.ts`) and the vector-index dimension rule for swapping embedding models
 
 Once configured: open [http://localhost:3000](http://localhost:3000), sign up, create an organization, and you are in.
 
@@ -136,8 +144,10 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | issues                   | The core entity                  | `teamId`, `number`, `status`, `priority`, `sortOrder`, `embedding`     |
 | labels / issueLabels     | Labels, many-to-many             | `name`, `color` / `issueId`, `labelId`                                 |
 | issueRelations           | Links between issues             | `issueId`, `relatedIssueId`, `type`                                    |
-| comments                 | Issue discussions                | `issueId`, `authorId`, `body`, `mentions[]`                            |
+| comments                 | Issue discussions                | `issueId`, `authorId`, `body`, `mentions[]`, `parentId`, `reactions[]` |
 | notifications            | In-app inbox feed                | `userId`, `actorId`, `issueId`, `type`, `read`                         |
+| notificationPrefs        | Per-member notification channels | `orgId`, `userId`, `mention`, `assigned`, `statusChanged`, `github`    |
+| emailDigests             | Email digest schedule + content  | `userId`, `timeOfDay`, `frequency`, `days[]`, `sections`, `lastSentDay` |
 | activity                 | Audit trail per issue            | `issueId`, `actorId`, `type`, `oldValue`, `newValue`                   |
 | projects                 | Cross-team initiatives           | `orgId`, `status`, `leadId`, `targetDate`                              |
 | cycles                   | Sprints per team                 | `teamId`, `number`, `startDate`, `endDate`                             |
@@ -162,7 +172,8 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 | `convex/http.ts`, `convex/webhooks.ts` | Clerk + GitHub + Figma webhook/OAuth endpoints and sync |
 | `convex/lib/customFunctions.ts` | `orgQuery` / `orgMutation` wrappers                         |
 | `convex/lib/limits.ts`          | Free-plan limit enforcement                                 |
-| `convex/agent/`                 | AI agent: chat, drafting, embeddings, triage, rate limiting |
+| `convex/agent/`                 | AI agent: chat, drafting, embeddings, triage, rate limiting (models in `agent/models.ts`) |
+| `convex/emailDigests.ts`, `convex/email/` | Digest settings/content + SES SMTP delivery and HTML template |
 | `convex/github/`, `convex/figma.ts` | GitHub (transport/sync split) and Figma integration    |
 | `convex/graph.ts`               | Dependency-graph data and saved layouts                     |
 | `components/`                   | UI: shell, board, issues, issue detail, graph, billing, AI  |
@@ -182,4 +193,4 @@ All tables are defined in [`convex/schema.ts`](../convex/schema.ts).
 
 ## DEPLOYMENT AND TROUBLESHOOTING
 
-Both covered in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md) — Vercel + `npx convex deploy` steps, production env vars, and a table of common failures (JWT template naming, webhook secrets, missing env vars).
+Both covered in [`.docs/CONFIGURE.md`](../.docs/CONFIGURE.md) - Vercel + `npx convex deploy` steps, production env vars, and a table of common failures (JWT template naming, webhook secrets, missing env vars).

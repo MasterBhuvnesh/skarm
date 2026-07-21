@@ -218,7 +218,7 @@ export const remove = orgMutation({
 
 /**
  * Cron entry point (convex/crons.ts): create issues for every template whose
- * nextRunAt has passed. Idempotent — nextRunAt is advanced in the same
+ * nextRunAt has passed. Idempotent - nextRunAt is advanced in the same
  * transaction as the issue insert, so a due template is picked up exactly
  * once even if the cron overlaps or retries.
  */
@@ -257,14 +257,14 @@ export const runDue = internalMutation({
           org,
           team,
           creatorId: template.creatorId,
-          title: `${template.titlePrefix} — ${date}`,
+          title: `${template.titlePrefix} - ${date}`,
           description: template.description,
           status: "backlog",
           priority: template.priority,
           labelIds: template.labelIds,
         });
       } catch (error) {
-        // e.g. free-plan issue limit reached — skip this occurrence.
+        // e.g. free-plan issue limit reached - skip this occurrence.
         console.error(
           `Recurring template ${template._id} skipped: ${
             error instanceof Error ? error.message : String(error)

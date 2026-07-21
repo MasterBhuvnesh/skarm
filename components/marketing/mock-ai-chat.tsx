@@ -6,7 +6,7 @@ import { MockFrame, MockWindowBar } from "@/components/marketing/mock-window";
 
 /**
  * AI agent chat mock: a question, the agent's tool calls, a cycle summary,
- * and an issue the agent filed — mirroring the real /ai experience.
+ * and an issue the agent filed - mirroring the real /ai experience.
  */
 export function MockAiChat({ className }: { className?: string }) {
   return (
@@ -46,14 +46,14 @@ export function MockAiChat({ className }: { className?: string }) {
                 <span className="font-medium text-foreground">
                   Shipped (8)
                 </span>{" "}
-                — keyboard triage, auth redirect fix, board virtualization,
+                - keyboard triage, auth redirect fix, board virtualization,
                 and 5 more.
               </p>
               <p>
                 <span className="font-medium text-foreground">
                   At risk (2)
                 </span>{" "}
-                — ENG-147 Cohere index migration has no reviewer; ENG-146 is
+                - ENG-147 Skarm index migration has no reviewer; ENG-146 is
                 blocked on a data backfill.
               </p>
             </div>
@@ -63,7 +63,7 @@ export function MockAiChat({ className }: { className?: string }) {
                 ENG-151
               </span>
               <span className="truncate text-xs font-medium">
-                Assign reviewer for Cohere index migration
+                Assign reviewer for Skarm index migration
               </span>
               <span className="ml-auto shrink-0 rounded border px-1 text-[9px] text-muted-foreground">
                 filed by Agent
