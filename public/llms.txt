@@ -1,0 +1,37 @@
+# Skarm
+
+> Skarm is an AI-native issue tracker for teams that plan, track, and ship together. It pairs a keyboard-first workspace (issues, boards, projects, cycles) with an AI agent, a dependency graph, email digests, and two-way GitHub and Figma sync.
+
+Skarm is a multi-tenant SaaS built with Next.js 16 (App Router), Convex (real-time backend), and Clerk (auth and billing). Every workspace is a Clerk organization; each organization has teams, and teams own issues identified by keys like ENG-42. Plans are Free, Pro, and Enterprise, with server-enforced limits.
+
+Tagline: Ship at the speed of thought.
+
+## Product
+
+- [Home](/): Landing page with the product overview and feature showcase.
+- [Pricing](/pricing): Free, Pro, and Enterprise plans with per-tier limits.
+- [Sign up](/sign-up): Create an account and a workspace.
+- [Sign in](/sign-in): Log in to an existing workspace.
+
+## Features
+
+- Issues and boards: statuses, priorities, assignees, estimates, due dates, labels; Kanban board with drag and drop; full-text search over titles and descriptions; team-scoped issue keys.
+- Collaboration: comments with mentions, emoji reactions, and reply threads; an inbox with tabbed notifications; sub-issues and relations; file attachments; live presence; public read-only issue sharing.
+- Projects and cycles: cross-team projects, time-boxed cycles with burndown and velocity analytics, and a React Flow dependency graph.
+- AI agent (Pro and Enterprise): workspace-aware chat, AI issue drafting, semantic duplicate detection, and triage suggestions.
+- Notifications: per-channel preferences and scheduled email digests delivered over SMTP in the member's local timezone.
+
+## Documentation
+
+- [README](https://github.com/MasterBhuvnesh/skarm/blob/main/.github/README.md): Full feature list, architecture, database schema, and project structure.
+- [Configuration guide](https://github.com/MasterBhuvnesh/skarm/blob/main/.docs/CONFIGURE.md): Setup for Clerk, Convex, environment variables, AI models, and email digests.
+- [Feature roadmap](https://github.com/MasterBhuvnesh/skarm/blob/main/.docs/FEATURES.md): Prioritized wishlist of features to add.
+
+## Integrations
+
+- [GitHub app overview](https://github.com/MasterBhuvnesh/skarm/blob/main/.docs/skarm-ai-about.md): What the skarm-ai GitHub App does and the permissions it requests.
+- [GitHub app reference](https://github.com/MasterBhuvnesh/skarm/blob/main/.docs/GITHUB_APP.md): Settings, environment variables, and how the install and sync flow works.
+
+## Optional
+
+- [Source repository](https://github.com/MasterBhuvnesh/skarm): The full codebase.
