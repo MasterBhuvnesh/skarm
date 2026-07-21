@@ -410,6 +410,40 @@ export default defineSchema({
     .index("by_team", ["teamId"])
     .index("by_next_run", ["nextRunAt"]),
 
+  /** Per-member email digest schedule + content preferences. One doc per
+      member, created on first save; missing doc = digests off. */
+  emailDigests: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.id("users"),
+    enabled: v.boolean(),
+    /** Local-time delivery window: morning ≈ 8:00, evening ≈ 18:00, any ≈ 9:00. */
+    timeOfDay: v.union(
+      v.literal("morning"),
+      v.literal("evening"),
+      v.literal("any")
+    ),
+    frequency: v.union(
+      v.literal("daily"),
+      v.literal("weekly"),
+      v.literal("custom")
+    ),
+    /** Weekdays 0 (Sun) – 6 (Sat). Weekly holds one entry; custom any set. */
+    days: v.array(v.number()),
+    sections: v.object({
+      assigned: v.boolean(),
+      inProgress: v.boolean(),
+      mentions: v.boolean(),
+      focus: v.boolean(),
+    }),
+    /** JS getTimezoneOffset(): minutes to add to local time to reach UTC. */
+    tzOffsetMinutes: v.number(),
+    /** Local date "YYYY-MM-DD" of the last delivery — the once-a-day guard. */
+    lastSentDay: v.optional(v.string()),
+    lastSentAt: v.optional(v.number()),
+  })
+    .index("by_org_user", ["orgId", "userId"])
+    .index("by_enabled", ["enabled"]),
+
   views: defineTable({
     orgId: v.id("organizations"),
     creatorId: v.id("users"),

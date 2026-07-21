@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CreditCard, LayoutTemplate, Plug, Users } from "lucide-react";
+import { Bell, CreditCard, LayoutTemplate, Mail, Plug, Users } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ const SETTINGS_PAGES = [
   { label: "Templates", segment: "templates", icon: LayoutTemplate },
   { label: "Integrations", segment: "integrations", icon: Plug },
   { label: "Notifications", segment: "notifications", icon: Bell },
+  { label: "Mail", segment: "mail", icon: Mail },
 ] as const;
 
 /** Left-hand navigation for the workspace settings section. */

@@ -349,3 +349,31 @@ re-embeds every issue in batches — no further action needed.
 - `isAiConfigured()` / `assertAiConfigured()` in `models.ts` gate every AI
   entry point on the API key env var — update them if the env var name
   changes.
+
+## Email digests (SES SMTP)
+
+Per-member digest emails (Settings → Mail): schedule = morning/evening/any
+time × every day/weekly/specific weekdays, content = assigned / in
+progress / mentions / needs-focus. An hourly cron
+(`convex/crons.ts` → `email/sendDigest.sweep`) delivers each member's
+digest once per local day; empty digests are skipped.
+
+Set on the Convex deployment (`npx convex env set …`):
+
+```env
+SES_SMTP_USER=AKIA...            # SES SMTP credential (not your AWS access key)
+SES_SMTP_PASSWORD=...
+SES_SMTP_HOST=email-smtp.<region>.amazonaws.com   # must match the region the SMTP creds were created in
+SES_FROM_EMAIL=Skarm <no-reply@yourdomain.com>    # a VERIFIED SES identity
+APP_URL=https://your-app-domain.com               # links inside the email
+```
+
+Notes:
+
+- The from address (or its domain) must be verified in SES, and while the
+  account is in the SES **sandbox**, recipients must be verified too —
+  request production access to email anyone.
+- Template lives in `convex/email/template.ts`; a static preview is at
+  `.docs/digest-email-preview.html`.
+- "Send test" on the Mail settings page emails the caller immediately,
+  ignoring schedule guards — the quickest way to validate SES config.
