@@ -15,13 +15,24 @@ const STATUS_LABEL: Record<string, string> = {
   canceled: "Canceled",
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  backlog: "#8f8f9a",
-  todo: "#8f8f9a",
-  in_progress: "#f2994a",
-  in_review: "#5e6ad2",
-  done: "#4cb782",
-  canceled: "#8f8f9a",
+/** Per-status chip palette: solid = badge fill, tint = pill background,
+    text = readable accent for the label. glyph is a white badge symbol
+    chosen from characters that render reliably across email clients. */
+const STATUS_CHIP: Record<
+  string,
+  { solid: string; tint: string; text: string; glyph: string }
+> = {
+  backlog: { solid: "#64748b", tint: "#f1f5f9", text: "#475569", glyph: "●" },
+  todo: { solid: "#3b82f6", tint: "#eef4ff", text: "#2563eb", glyph: "●" },
+  in_progress: {
+    solid: "#f2994a",
+    tint: "#fff5eb",
+    text: "#d97706",
+    glyph: "●",
+  },
+  in_review: { solid: "#8b5cf6", tint: "#f4f1fe", text: "#7c3aed", glyph: "●" },
+  done: { solid: "#22c55e", tint: "#eefdf3", text: "#16a34a", glyph: "✓" },
+  canceled: { solid: "#ef4444", tint: "#fef1f1", text: "#dc2626", glyph: "×" },
 };
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -52,36 +63,66 @@ function formatDue(dueDate: number | undefined, now: number): string {
 function issueRow(item: DigestIssue, appUrl: string, now: number): string {
   const due = formatDue(item.dueDate, now);
   const overdue = item.dueDate !== undefined && item.dueDate < now;
-  const priority = PRIORITY_LABEL[item.priority];
+  const isUrgent = item.priority === "urgent";
+  const chip = STATUS_CHIP[item.status] ?? STATUS_CHIP.todo;
+
+  const meta = [
+    isUrgent
+      ? `<span style="font-size:11px;font-weight:700;color:#dc2626;">Urgent</span>`
+      : "",
+    due
+      ? `<span style="font-size:11px;color:${overdue ? "#dc2626" : chip.text};opacity:0.9;">${due}</span>`
+      : "",
+    `<span style="font-size:11px;font-weight:600;color:${chip.text};">${STATUS_LABEL[item.status]}</span>`,
+  ]
+    .filter(Boolean)
+    .join(`<span style="color:${chip.text};opacity:0.4;">&nbsp;&middot;&nbsp;</span>`);
+
   return `
-    <tr>
-      <td style="padding:10px 0;border-top:1px solid #ececf1;">
-        <a href="${appUrl}${item.path}" style="text-decoration:none;color:#18181c;">
-          <span style="font-family:Consolas,Menlo,monospace;font-size:12px;color:#6b6b76;">${escapeHtml(item.identifier)}</span>
-          &nbsp;<span style="font-size:14px;">${escapeHtml(item.title)}</span>
-        </a>
-      </td>
-      <td align="right" style="padding:10px 0;border-top:1px solid #ececf1;white-space:nowrap;">
-        ${priority === "Urgent" ? `<span style="font-size:11px;color:#e5484d;font-weight:600;">Urgent&nbsp;·&nbsp;</span>` : ""}
-        ${due ? `<span style="font-size:11px;color:${overdue ? "#e5484d" : "#6b6b76"};">${due}&nbsp;·&nbsp;</span>` : ""}
-        <span style="font-size:11px;color:${STATUS_COLOR[item.status]};font-weight:600;">${STATUS_LABEL[item.status]}</span>
-      </td>
-    </tr>`;
+    <tr><td style="padding:4px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${chip.tint};border-radius:12px;">
+        <tr>
+          <td width="44" style="padding:9px 2px 9px 10px;vertical-align:middle;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td width="26" height="26" align="center" valign="middle" style="width:26px;height:26px;background:${chip.solid};border-radius:8px;color:#ffffff;font-size:13px;font-weight:700;line-height:26px;text-align:center;">${chip.glyph}</td>
+            </tr></table>
+          </td>
+          <td style="padding:9px 6px 9px 2px;vertical-align:middle;">
+            <a href="${appUrl}${item.path}" style="text-decoration:none;">
+              <span style="font-family:Consolas,Menlo,monospace;font-size:11px;color:${chip.text};opacity:0.7;">${escapeHtml(item.identifier)}</span>
+              <span style="font-size:14px;font-weight:600;color:${chip.text};">&nbsp;${escapeHtml(item.title)}</span>
+            </a>
+          </td>
+          <td align="right" style="padding:9px 12px 9px 6px;vertical-align:middle;white-space:nowrap;">
+            ${meta}
+          </td>
+        </tr>
+      </table>
+    </td></tr>`;
 }
 
 function mentionRow(item: DigestMention, appUrl: string): string {
   return `
-    <tr>
-      <td colspan="2" style="padding:10px 0;border-top:1px solid #ececf1;">
-        <a href="${appUrl}${item.path}" style="text-decoration:none;color:#18181c;">
-          <span style="font-size:13px;"><strong>${escapeHtml(item.actorName)}</strong>
-          <span style="color:#6b6b76;">mentioned you on</span>
-          <span style="font-family:Consolas,Menlo,monospace;font-size:12px;color:#6b6b76;">${escapeHtml(item.identifier)}</span>
-          ${escapeHtml(item.title)}</span>
-          ${item.snippet ? `<br /><span style="font-size:12px;color:#6b6b76;">&ldquo;${escapeHtml(item.snippet)}&rdquo;</span>` : ""}
-        </a>
-      </td>
-    </tr>`;
+    <tr><td style="padding:4px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1fe;border-radius:12px;">
+        <tr>
+          <td width="44" style="padding:11px 2px 11px 10px;vertical-align:top;">
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td width="26" height="26" align="center" valign="middle" style="width:26px;height:26px;background:#8b5cf6;border-radius:8px;color:#ffffff;font-size:13px;font-weight:700;line-height:26px;text-align:center;">@</td>
+            </tr></table>
+          </td>
+          <td style="padding:10px 12px 10px 2px;vertical-align:middle;">
+            <a href="${appUrl}${item.path}" style="text-decoration:none;">
+              <span style="font-size:13px;color:#3c4043;"><strong style="color:#7c3aed;">${escapeHtml(item.actorName)}</strong>
+              <span style="color:#6b6b76;">mentioned you on</span>
+              <span style="font-family:Consolas,Menlo,monospace;font-size:11px;color:#7c3aed;">${escapeHtml(item.identifier)}</span>
+              ${escapeHtml(item.title)}</span>
+              ${item.snippet ? `<br /><span style="font-size:12px;color:#6b6b76;">&ldquo;${escapeHtml(item.snippet)}&rdquo;</span>` : ""}
+            </a>
+          </td>
+        </tr>
+      </table>
+    </td></tr>`;
 }
 
 function section(title: string, rows: string, emptyText: string): string {
