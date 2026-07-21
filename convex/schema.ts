@@ -308,6 +308,17 @@ export default defineSchema({
     .index("by_user", ["orgId", "userId"])
     .index("by_user_read", ["orgId", "userId", "read"]),
 
+  /** Per-member notification channel toggles. One doc per member, created
+      lazily on first toggle; a missing doc means everything is enabled. */
+  notificationPrefs: defineTable({
+    orgId: v.id("organizations"),
+    userId: v.id("users"),
+    mention: v.boolean(),
+    assigned: v.boolean(),
+    statusChanged: v.boolean(),
+    github: v.boolean(),
+  }).index("by_org_user", ["orgId", "userId"]),
+
   activity: defineTable({
     orgId: v.id("organizations"),
     issueId: v.id("issues"),
