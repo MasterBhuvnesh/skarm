@@ -350,7 +350,7 @@ re-embeds every issue in batches — no further action needed.
   entry point on the API key env var — update them if the env var name
   changes.
 
-## Email digests (SES SMTP)
+## Email digests (SMTP)
 
 Per-member digest emails (Settings → Mail): schedule = morning/evening/any
 time × every day/weekly/specific weekdays, content = assigned / in
@@ -358,22 +358,37 @@ progress / mentions / needs-focus. An hourly cron
 (`convex/crons.ts` → `email/sendDigest.sweep`) delivers each member's
 digest once per local day; empty digests are skipped.
 
-Set on the Convex deployment (`npx convex env set …`):
+Delivery is provider-agnostic SMTP (`convex/email/sendDigest.ts`) — Gmail,
+AWS SES, Postmark, etc. Set on the Convex deployment
+(`npx convex env set …`):
 
 ```env
-SES_SMTP_USER=AKIA...            # SES SMTP credential (not your AWS access key)
-SES_SMTP_PASSWORD=...
-SES_SMTP_HOST=email-smtp.<region>.amazonaws.com   # must match the region the SMTP creds were created in
-SES_FROM_EMAIL=Skarm <no-reply@yourdomain.com>    # a VERIFIED SES identity
-APP_URL=https://your-app-domain.com               # links inside the email
+SMTP_HOST=smtp.gmail.com                     # or email-smtp.<region>.amazonaws.com, etc.
+SMTP_PORT=465                                # 465 = implicit TLS; 587 = STARTTLS
+SMTP_USER=you@gmail.com                      # SMTP username
+SMTP_PASSWORD=...                            # app password (Gmail) / SMTP secret (SES)
+SMTP_FROM=Skarm <you@gmail.com>              # a sender the provider allows
+APP_URL=https://your-app-domain.com          # links inside the email
 ```
 
-Notes:
+Provider notes:
 
-- The from address (or its domain) must be verified in SES, and while the
-  account is in the SES **sandbox**, recipients must be verified too —
-  request production access to email anyone.
+- **Gmail**: create an [App Password](https://myaccount.google.com/apppasswords)
+  (needs 2FA on the account) and use it as `SMTP_PASSWORD`. `SMTP_FROM` must be
+  that Gmail address. Easiest for testing — no identity/domain verification,
+  no sandbox. Watch the ~500 messages/day limit.
+- **AWS SES**: `SMTP_HOST=email-smtp.<region>.amazonaws.com` (the region must
+  match where the SMTP creds were created). The from address/domain must be a
+  **verified** SES identity, and while the account is in the SES **sandbox**
+  the recipient must be verified too — request production access to email
+  anyone.
 - Template lives in `convex/email/template.ts`; a static preview is at
   `.docs/digest-email-preview.html`.
-- "Send test" on the Mail settings page emails the caller immediately,
-  ignoring schedule guards — the quickest way to validate SES config.
+
+Testing:
+
+- **CLI** (no login, quickest pipe check):
+  `npx convex run email/sendDigest:testTo '{"to":"you@example.com"}'` —
+  returns `sent: <id>` or the raw SMTP error (auth / region / unverified).
+- **Send test** on the Mail settings page emails the signed-in member their
+  own real digest immediately, ignoring schedule guards.

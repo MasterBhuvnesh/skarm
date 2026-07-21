@@ -7,25 +7,28 @@ import { internalAction } from "../_generated/server";
 import { renderDigestHtml } from "./template";
 
 /**
- * SES SMTP delivery for email digests. Credentials live only in Convex env:
- *   SES_SMTP_USER / SES_SMTP_PASSWORD  — SES SMTP credentials
- *   SES_SMTP_HOST                      — region endpoint (email-smtp.<region>.amazonaws.com)
- *   SES_FROM_EMAIL                     — a VERIFIED SES identity, e.g. "Skarm <no-reply@example.com>"
- *   APP_URL                            — base URL used for links in the email
+ * SMTP delivery for email digests — provider-agnostic (Gmail, AWS SES,
+ * Postmark, …). Credentials live only in Convex env:
+ *   SMTP_USER / SMTP_PASSWORD  — SMTP username + password (app password for Gmail)
+ *   SMTP_HOST                  — e.g. smtp.gmail.com, email-smtp.<region>.amazonaws.com
+ *   SMTP_PORT                  — defaults to 465 (implicit TLS)
+ *   SMTP_FROM                  — sender the provider allows, "Skarm <you@example.com>"
+ *   APP_URL                    — base URL used for links in the email
  */
 
 function isEmailConfigured(): boolean {
-  return Boolean(process.env.SES_SMTP_USER && process.env.SES_SMTP_PASSWORD);
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASSWORD);
 }
 
 function transport() {
+  const port = Number(process.env.SMTP_PORT ?? 465);
   return nodemailer.createTransport({
-    host: process.env.SES_SMTP_HOST ?? "email-smtp.us-east-1.amazonaws.com",
-    port: 465,
-    secure: true,
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+    port,
+    secure: port === 465, // 465 = implicit TLS; 587 = STARTTLS
     auth: {
-      user: process.env.SES_SMTP_USER,
-      pass: process.env.SES_SMTP_PASSWORD,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   });
 }
@@ -59,10 +62,10 @@ export const testTo = internalAction({
   returns: v.string(),
   handler: async (_ctx, args): Promise<string> => {
     if (!isEmailConfigured()) {
-      return "SES_SMTP_USER / SES_SMTP_PASSWORD are not set";
+      return "SMTP_USER / SMTP_PASSWORD are not set";
     }
     const info = await transport().sendMail({
-      from: process.env.SES_FROM_EMAIL ?? "Skarm <no-reply@example.com>",
+      from: process.env.SMTP_FROM ?? "Skarm <no-reply@example.com>",
       to: args.to,
       subject: "Skarm test email — SES SMTP is working",
       html: `<div style="font-family:sans-serif;padding:24px;">
@@ -82,7 +85,7 @@ export const deliver = internalAction({
   returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     if (!isEmailConfigured()) {
-      console.warn("Digest skipped: SES_SMTP_USER/SES_SMTP_PASSWORD not set");
+      console.warn("Digest skipped: SMTP_USER/SMTP_PASSWORD not set");
       return null;
     }
     const data = await ctx.runQuery(internal.emailDigests.getDigestData, {
@@ -112,7 +115,7 @@ export const deliver = internalAction({
     const subject = `Your ${data.orgName} digest${counts.length ? ` — ${counts.join(", ")}` : ""}`;
 
     await transport().sendMail({
-      from: process.env.SES_FROM_EMAIL ?? "Skarm <no-reply@example.com>",
+      from: process.env.SMTP_FROM ?? "Skarm <no-reply@example.com>",
       to: data.email,
       subject,
       html,
