@@ -26,7 +26,7 @@ export default function MarketingLayout({
             href="/"
             className="flex items-center gap-2 text-[15px] font-semibold tracking-tight"
           >
-            <SkarmLogo size={26} />
+            <SkarmLogo size={26} tile />
             Skarm
           </Link>
 
