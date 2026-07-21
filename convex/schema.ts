@@ -59,7 +59,8 @@ export const templateCadenceValidator = v.union(
 export const notificationTypeValidator = v.union(
   v.literal("mention"),
   v.literal("assigned"),
-  v.literal("status_changed")
+  v.literal("status_changed"),
+  v.literal("reply")
 );
 
 export default defineSchema({
@@ -182,7 +183,15 @@ export default defineSchema({
     body: v.string(),
     /** User ids @mentioned in the body */
     mentions: v.optional(v.array(v.id("users"))),
-  }).index("by_issue", ["issueId"]),
+    /** Root comment this replies to. Threads are one level deep. */
+    parentId: v.optional(v.id("comments")),
+    /** Emoji reactions; grouped by emoji for display. */
+    reactions: v.optional(
+      v.array(v.object({ emoji: v.string(), userId: v.id("users") }))
+    ),
+  })
+    .index("by_issue", ["issueId"])
+    .index("by_parent", ["parentId"]),
 
   integrations: defineTable({
     orgId: v.id("organizations"),

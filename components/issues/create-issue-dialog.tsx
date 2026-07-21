@@ -11,6 +11,7 @@ import {
   Loader2,
   Pencil,
   Sparkles,
+  TriangleAlert,
   Undo2,
   Users,
   X,
@@ -21,6 +22,7 @@ import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -134,6 +136,24 @@ export function CreateIssueDialog({
   const [effort, setEffort] = useState<DraftEffort>("concise");
   const [preDraft, setPreDraft] = useState<PreDraftSnapshot | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [dupeDismissed, setDupeDismissed] = useState(false);
+
+  // Reset the duplicate-warning dismissal whenever the dialog opens (render-
+  // phase adjustment; see react.dev "you might not need an effect").
+  const [dupeTrackedOpen, setDupeTrackedOpen] = useState(open);
+  if (open !== dupeTrackedOpen) {
+    setDupeTrackedOpen(open);
+    if (open) {
+      setDupeDismissed(false);
+    }
+  }
+
+  // Org-wide (cross-team) duplicate detection while typing the title.
+  const debouncedTitle = useDebouncedValue(title, 400).trim();
+  const duplicates = useQuery(
+    api.search.issues,
+    open && debouncedTitle.length >= 8 ? { query: debouncedTitle } : "skip"
+  );
 
   // Drafting is a paid feature; the backend enforces this too (authorizeAi).
   const { has } = useAuth();
@@ -348,6 +368,41 @@ export function CreateIssueDialog({
             }}
             className="border-none px-0 text-lg font-medium shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
+          {duplicates && duplicates.length > 0 && !dupeDismissed && (
+            <div className="shrink-0 rounded-md border border-amber-500/30 bg-amber-500/5 px-2.5 py-2">
+              <div className="flex items-center gap-1.5">
+                <TriangleAlert className="size-3.5 shrink-0 text-amber-500" />
+                <span className="text-xs font-medium">
+                  Similar issues already exist
+                </span>
+                <button
+                  type="button"
+                  aria-label="Dismiss duplicate warning"
+                  onClick={() => setDupeDismissed(true)}
+                  className="ml-auto text-muted-foreground hover:text-foreground"
+                >
+                  <X className="size-3" />
+                </button>
+              </div>
+              <div className="mt-1.5 flex flex-col gap-0.5">
+                {duplicates.slice(0, 4).map((issue) => (
+                  <a
+                    key={issue._id}
+                    href={`/${params.orgSlug}/issue/${issue._id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    <span className="shrink-0 font-mono">
+                      {issue.teamKey}-{issue.number}
+                    </span>
+                    <span className="text-muted-foreground/60">·</span>
+                    <span className="truncate">{issue.title}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
           {descPreview ? (
             <div
               role="button"
