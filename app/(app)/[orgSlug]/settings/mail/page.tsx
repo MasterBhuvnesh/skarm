@@ -3,7 +3,7 @@
 import { useMutation, useQuery } from "convex/react";
 import { ConvexError } from "convex/values";
 import { Loader2, Send } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
@@ -85,14 +85,10 @@ export default function MailSettingsPage() {
   const saved = useQuery(api.emailDigests.getSettings);
   const save = useMutation(api.emailDigests.saveSettings);
   const sendTest = useMutation(api.emailDigests.sendTest);
-  const [draft, setDraft] = useState<Settings | null>(null);
+  // Server settings until the first local edit, then the local draft.
+  const [edits, setEdits] = useState<Settings | null>(null);
+  const draft = edits ?? saved ?? null;
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (saved && draft === null) {
-      setDraft(saved);
-    }
-  }, [saved, draft]);
 
   if (!draft) {
     return (
@@ -103,7 +99,7 @@ export default function MailSettingsPage() {
   }
 
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) =>
-    setDraft({ ...draft, [key]: value });
+    setEdits({ ...draft, [key]: value });
 
   const toggleDay = (day: number) => {
     if (draft.frequency === "weekly") {
@@ -231,7 +227,7 @@ export default function MailSettingsPage() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <p className="text-sm font-medium">What's inside</p>
+          <p className="text-sm font-medium">What&apos;s inside</p>
           {SECTIONS.map(({ key, label, description }) => (
             <div key={key} className="flex items-center justify-between gap-4">
               <div>
