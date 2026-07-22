@@ -123,7 +123,7 @@ export default function InboxPage() {
           Mark all read
         </Button>
       </header>
-      <div className="flex h-9 shrink-0 items-center border-b px-2">
+      <div className="flex shrink-0 items-center border-b px-2 py-2.5">
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="h-7">
             {TABS.map((t) => {
@@ -133,11 +133,13 @@ export default function InboxPage() {
                 <TabsTrigger
                   key={t.value}
                   value={t.value}
-                  className="h-6 gap-1 px-2 text-xs"
+                  className="h-6 gap-1.5 px-2.5 text-xs"
                 >
                   {t.label}
                   {count > 0 && (
-                    <span className="text-muted-foreground">{count}</span>
+                    <span className="rounded bg-foreground/10 px-1 text-[10px] font-medium tabular-nums">
+                      {count}
+                    </span>
                   )}
                 </TabsTrigger>
               );
