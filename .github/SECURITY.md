@@ -4,7 +4,7 @@
 
 Do not open a public issue.
 
-Report privately through [GitHub Security Advisories](https://github.com/MasterBhuvnesh/skarm/security/advisories/new), or email bhuvnesh.verma.absolv@gmail.com with `SECURITY` in the subject.
+Report privately through [GitHub Security Advisories](https://github.com/MasterBhuvnesh/skarm/security/advisories/new), or email bhuvenshverma2904@gmail.com with `SECURITY` in the subject.
 
 Include: what the flaw is, steps to reproduce, affected route or Convex function, and the impact you can demonstrate. A proof of concept helps.
 
