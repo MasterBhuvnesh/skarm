@@ -255,13 +255,29 @@ function GraphInner() {
   };
 
   const onError = (error: unknown) => {
-    // Only ConvexError carries a message safe to show: a plain Error is
-    // redacted to "Server Error" in production.
-    toast.error(
+    // ConvexError puts the thrown message on `data`; a plain Error is
+    // redacted to "Server Error" and must not be shown. Read `data`
+    // structurally rather than via `instanceof`, which fails when the page
+    // and the Convex client resolve separate copies of convex/values.
+    const data =
       error instanceof ConvexError
-        ? (error.data as string)
-        : "Something went wrong"
+        ? error.data
+        : (error as { data?: unknown } | null)?.data;
+    toast.error(
+      typeof data === "string" ? data : "Could not update the graph"
     );
+  };
+
+  /**
+   * Reject a self-connection here rather than round-tripping to the server
+   * for an answer the canvas already knows. The mutation still enforces it.
+   */
+  const onConnect = (connection: Connection) => {
+    if (connection.source === connection.target) {
+      toast.error("An issue cannot be linked to itself");
+      return;
+    }
+    setPending(connection);
   };
 
   /** Discard manual positions and re-run the blocking-depth layout. */
@@ -423,7 +439,7 @@ function GraphInner() {
               nodeTypes={nodeTypes}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
-              onConnect={(connection) => setPending(connection)}
+              onConnect={onConnect}
               onEdgeClick={(_, edge) => setSelectedEdge(edge)}
               onNodeDragStop={() =>
                 setNodes((current) => {
