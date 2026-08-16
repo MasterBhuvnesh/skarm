@@ -86,7 +86,7 @@ export const PRO_PLAN: PlanDefinition = {
   tagline: "For growing teams that want AI superpowers and no limits.",
   monthlyPrice: 20,
   annualMonthlyPrice: 16,
-  priceNote: "Flat rate · up to 10 members",
+  priceNote: "up to 10 members",
   maxSeats: 10,
   highlightsLeadIn: "Everything in Free, plus:",
   highlights: [
