@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { internalMutation, MutationCtx } from "./_generated/server";
 
@@ -157,6 +158,12 @@ async function upsertOrganization(ctx: MutationCtx, data: ClerkOrgData) {
       imageUrl: data.image_url ?? undefined,
       plan: "free",
     });
+    // A new organization inherits the instance-wide membership default,
+    // which is higher than the Free cap. Narrow it immediately.
+    await ctx.scheduler.runAfter(0, internal.clerkSeats.syncSeatCap, {
+      clerkOrgId: data.id,
+      plan: "free",
+    });
   }
 }
 
@@ -257,6 +264,27 @@ async function getOrgByClerkId(ctx: MutationCtx, clerkOrgId: string) {
     .unique();
 }
 
+/**
+ * The single place an organization's plan changes. Seats are enforced by
+ * Clerk, not by Convex, so a plan change that does not reach Clerk leaves
+ * the workspace on its old cap. Route every plan write through here.
+ */
+async function setOrgPlan(
+  ctx: MutationCtx,
+  org: Doc<"organizations">,
+  plan: Doc<"organizations">["plan"],
+  subscriptionStatus?: string
+) {
+  await ctx.db.patch(org._id, {
+    plan,
+    ...(subscriptionStatus === undefined ? {} : { subscriptionStatus }),
+  });
+  await ctx.scheduler.runAfter(0, internal.clerkSeats.syncSeatCap, {
+    clerkOrgId: org.clerkOrgId,
+    plan,
+  });
+}
+
 async function syncSubscription(
   ctx: MutationCtx,
   data: ClerkSubscriptionData
@@ -286,10 +314,7 @@ async function syncSubscription(
     }
   }
 
-  await ctx.db.patch(org._id, {
-    plan,
-    subscriptionStatus: data.status,
-  });
+  await setOrgPlan(ctx, org, plan, data.status);
 }
 
 async function syncSubscriptionItem(
@@ -324,8 +349,8 @@ async function syncSubscriptionItem(
     eventType === "subscriptionItem.abandoned";
 
   if (activated) {
-    await ctx.db.patch(org._id, { plan: itemPlan, subscriptionStatus: "active" });
+    await setOrgPlan(ctx, org, itemPlan, "active");
   } else if (deactivated && org.plan === itemPlan) {
-    await ctx.db.patch(org._id, { plan: "free" });
+    await setOrgPlan(ctx, org, "free");
   }
 }
