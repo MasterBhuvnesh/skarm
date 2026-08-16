@@ -54,9 +54,8 @@ Never commit `.env.local`.
 4. Set up Billing with three organization plans: `free_org`, `pro`, `enterprise`
 5. Attach features to the paid plans: `ai_agent`, `unlimited_projects`, `unlimited_issues`, `unlimited_seats`, `unlimited_ai`, `priority_support`
 6. Copy your plan IDs into [`lib/plans.ts`](../lib/plans.ts)
-7. Make sure the Pro plan includes, in its base price, the number of seats
-   the pricing page promises. Clerk derives the Pro member cap from purchased
-   seats and will not let code override it - see below
+7. Keep every plan flat rate. Do not attach a per-seat price to any plan,
+   or its seat cap stops being settable from code - see below
 8. Run `node scripts/backfill-seat-caps.mjs` once to correct organizations
    created before this sync existed (dry run by default, `--apply` to write)
 
@@ -70,19 +69,20 @@ mutation is ever in the path. The only real cap is Clerk's
 `convex/clerkSeats.ts` pushes that value whenever a workspace's plan
 changes, and when a workspace is first created:
 
-| Plan       | `max_allowed_memberships` | Who sets it   |
-| ---------- | -------------------------- | ------------- |
-| Free       | 3                          | this sync     |
-| Pro        | seats purchased            | Clerk billing |
-| Enterprise | 0 (unlimited)              | this sync     |
+| Plan       | `max_allowed_memberships` |
+| ---------- | -------------------------- |
+| Free       | 3                          |
+| Pro        | 10                         |
+| Enterprise | 0 (unlimited)              |
 
 Two things to know:
 
 - Your instance-wide default (Clerk → Organizations → Maximum members)
   applies to any organization this sync has not touched. It is why Free
   workspaces could reach it and Enterprise workspaces could not exceed it.
-- **Pro cannot be set from code.** Its per-seat price makes the cap a
-  billing artifact, and the Backend API rejects any attempt to change it:
+- **Every plan must be flat rate.** If a plan carries a per-seat price,
+  Clerk derives that plan's cap from the seats actually purchased and
+  rejects any attempt to set it:
 
   ```
   400 organization_member_limit_managed_by_billing
@@ -90,10 +90,9 @@ Two things to know:
   It cannot be edited directly.
   ```
 
-  Clerk sets the cap to the seat quantity actually purchased, which is 1 for
-  a base subscription. So if the pricing page promises Pro workspaces 10
-  members, the Pro plan in the Clerk Dashboard has to include 10 seats in
-  its base price. There is no code-side workaround.
+  Pro carried such a price until it was removed. If you add per-seat
+  pricing to a plan again, its seat cap stops being yours to set and the
+  sync will log this error on every plan change for that plan.
 
 ### 4. Configure Convex
 

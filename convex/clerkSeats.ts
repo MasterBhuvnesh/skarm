@@ -18,32 +18,21 @@ import { Doc } from "./_generated/dataModel";
  * could not exceed them.
  *
  * `max_allowed_memberships: 0` means unlimited.
+ *
+ * This only works while no plan carries a per-seat price. Clerk derives the
+ * cap from seats purchased on a seat-billed plan and rejects writes to it
+ * with `organization_member_limit_managed_by_billing`. Every plan here is
+ * flat rate, so the cap is ours to set. Reintroducing per-seat pricing would
+ * take that back - see .docs/CONFIGURE.md.
  */
 
-/**
- * Clerk's `max_allowed_memberships` for a plan, or null when Clerk billing
- * owns the number and refuses external writes.
- *
- * Pro is that case. Its per-seat price makes the cap a billing artifact:
- * Clerk sets it to the seat quantity actually purchased and rejects any
- * attempt to change it, with
- *
- *   400 organization_member_limit_managed_by_billing
- *   "This organization's member limit is managed by their subscription.
- *    It cannot be edited directly."
- *
- * So Pro's seat allowance cannot be fixed from here. It is a property of
- * the Pro plan in the Clerk Dashboard: the base price has to include the
- * seats the pricing page promises. See issue #29 and .docs/CONFIGURE.md.
- */
-export function seatCapForPlan(
-  plan: Doc<"organizations">["plan"]
-): number | null {
+/** Clerk's `max_allowed_memberships` for a plan. 0 means unlimited. */
+export function seatCapForPlan(plan: Doc<"organizations">["plan"]): number {
   switch (plan) {
     case "free":
       return 3;
     case "pro":
-      return null; // managed by Clerk billing, not writable
+      return 10;
     case "enterprise":
       return 0; // unlimited
   }
@@ -54,9 +43,6 @@ export const syncSeatCap = internalAction({
   returns: v.null(),
   handler: async (_ctx, args): Promise<null> => {
     const cap = seatCapForPlan(args.plan);
-    if (cap === null) {
-      return null;
-    }
 
     const secretKey = process.env.CLERK_SECRET_KEY;
     if (!secretKey) {
@@ -82,12 +68,23 @@ export const syncSeatCap = internalAction({
     );
 
     if (!response.ok) {
+      const body = await response.text();
       // Logged rather than thrown, for the same reason as above. The next
       // plan event re-applies the cap.
-      console.error(
-        `Seat cap sync failed for ${args.clerkOrgId} (${response.status}): ` +
-          (await response.text())
-      );
+      if (body.includes("organization_member_limit_managed_by_billing")) {
+        // The plan still carries a per-seat price, so Clerk derives the cap
+        // from seats purchased and refuses this write. Remove the per-seat
+        // price from the plan in the Clerk Dashboard - see CONFIGURE.md.
+        console.error(
+          `Seat cap for ${args.clerkOrgId} is managed by Clerk billing. ` +
+            `Remove the per-seat price from the ${args.plan} plan so its ` +
+            `member limit can be set to ${cap}.`
+        );
+      } else {
+        console.error(
+          `Seat cap sync failed for ${args.clerkOrgId} (${response.status}): ${body}`
+        );
+      }
     }
     return null;
   },

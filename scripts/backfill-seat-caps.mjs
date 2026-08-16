@@ -22,15 +22,13 @@
 import { readFileSync } from "node:fs";
 
 /**
- * Clerk's `max_allowed_memberships` per plan. 0 means unlimited, null means
- * Clerk billing owns the number and rejects external writes.
+ * Clerk's `max_allowed_memberships` per plan. 0 means unlimited.
  *
- * Pro is billing-managed: its per-seat price makes the cap equal to the
- * seats purchased, and PATCHing it returns
- * 400 organization_member_limit_managed_by_billing. Pro's allowance has to
- * be set on the plan itself in the Clerk Dashboard.
+ * Writing these requires every plan to be flat rate. A plan carrying a
+ * per-seat price has its cap derived from seats purchased, and Clerk rejects
+ * the write with organization_member_limit_managed_by_billing.
  */
-const SEAT_CAP = { free: 3, pro: null, enterprise: 0 };
+const SEAT_CAP = { free: 3, pro: 10, enterprise: 0 };
 
 const APPLY = process.argv.includes("--apply");
 
@@ -123,13 +121,6 @@ for (const org of organizations) {
   const have = org.max_allowed_memberships;
   const label = `${org.name} [${plan}] ${have} -> ${want}`;
 
-  if (want === null) {
-    skipped++;
-    console.log(
-      `  skip    ${org.name} [${plan}] cap ${have} is managed by Clerk billing`
-    );
-    continue;
-  }
   if (have === want) {
     alreadyCorrect++;
     console.log(`  ok      ${org.name} [${plan}] already ${have}`);
@@ -148,15 +139,23 @@ for (const org of organizations) {
     changed++;
     console.log(`  set     ${label}`);
   } catch (error) {
-    failed++;
-    console.log(`  FAILED  ${label}: ${error.message}`);
+    if (error.message.includes("organization_member_limit_managed_by_billing")) {
+      skipped++;
+      console.log(
+        `  BILLING ${label}: the ${plan} plan still has a per-seat price, so ` +
+          `Clerk owns this cap. Remove it in the Clerk Dashboard.`
+      );
+    } else {
+      failed++;
+      console.log(`  FAILED  ${label}: ${error.message}`);
+    }
   }
 }
 
 console.log(
   `\n${APPLY ? "changed" : "would change"} ${changed}, ` +
     `already correct ${alreadyCorrect}, ` +
-    `skipped (billing-managed) ${skipped}, failed ${failed}`
+    `billing-managed ${skipped}, failed ${failed}`
 );
 if (failed > 0) {
   process.exitCode = 1;

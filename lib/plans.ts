@@ -86,11 +86,11 @@ export const PRO_PLAN: PlanDefinition = {
   tagline: "For growing teams that want AI superpowers and no limits.",
   monthlyPrice: 20,
   annualMonthlyPrice: 16,
-  priceNote: "+$10 per seat after the first · up to 10 members",
+  priceNote: "Flat rate · up to 10 members",
   maxSeats: 10,
   highlightsLeadIn: "Everything in Free, plus:",
   highlights: [
-    "Up to 10 members (seat-based)",
+    "Up to 10 members included",
     "Unlimited projects and issues",
     "AI agent with workspace context",
     "50 AI messages per user per day",
