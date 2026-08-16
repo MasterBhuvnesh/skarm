@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import nodemailer from "nodemailer";
 import { internal } from "../_generated/api";
 import { internalAction } from "../_generated/server";
+import { siteUrl } from "../lib/siteUrl";
 import { renderDigestHtml } from "./template";
 
 /**
@@ -13,7 +14,8 @@ import { renderDigestHtml } from "./template";
  *   SMTP_HOST                  - e.g. smtp.gmail.com, email-smtp.<region>.amazonaws.com
  *   SMTP_PORT                  - defaults to 465 (implicit TLS)
  *   SMTP_FROM                  - sender the provider allows, "Skarm <you@example.com>"
- *   APP_URL                    - base URL used for links in the email
+ *
+ * Links in the email are built from SITE_URL - see lib/siteUrl.ts.
  */
 
 function isEmailConfigured(): boolean {
@@ -103,8 +105,7 @@ export const deliver = internalAction({
       return null;
     }
 
-    const appUrl = process.env.APP_URL ?? "http://localhost:3000";
-    const html = renderDigestHtml(data, appUrl);
+    const html = renderDigestHtml(data, siteUrl());
     const counts = [
       data.sections.focus?.length && `${data.sections.focus.length} to focus`,
       data.sections.assigned?.length &&

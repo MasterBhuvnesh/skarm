@@ -2,6 +2,7 @@ import { httpRouter } from "convex/server";
 import { Webhook } from "svix";
 import { internal } from "./_generated/api";
 import { httpAction } from "./_generated/server";
+import { siteUrl } from "./lib/siteUrl";
 
 const http = httpRouter();
 
@@ -256,10 +257,11 @@ http.route({
       );
     }
 
-    const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${siteUrl}/${orgSlug}/settings/integrations` },
+      headers: {
+        Location: `${siteUrl()}/${orgSlug}/settings/integrations`,
+      },
     });
   }),
 });
@@ -326,10 +328,11 @@ http.route({
       );
     }
 
-    const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
     return new Response(null, {
       status: 302,
-      headers: { Location: `${siteUrl}/${orgSlug}/settings/integrations` },
+      headers: {
+        Location: `${siteUrl()}/${orgSlug}/settings/integrations`,
+      },
     });
   }),
 });

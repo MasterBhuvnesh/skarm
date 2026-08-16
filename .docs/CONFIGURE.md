@@ -205,8 +205,10 @@ npx convex env set GITHUB_APP_SLUG <slug>
 npx convex env set GITHUB_WEBHOOK_SECRET <webhook secret from step 1>
 # For GitHub Issues sync (issue creation from Skarm):
 npx convex env set GITHUB_APP_ID <numeric app id>
-# Production only - where /github-setup redirects users after install.
-# Defaults to http://localhost:3000 when unset.
+# REQUIRED - your app's public origin. Used for OAuth redirects after a
+# GitHub/Figma connect, links inside email digests, and the resources
+# pushed into Figma Dev Mode. Sending fails loudly when it is unset
+# rather than silently emitting http://localhost:3000 links.
 npx convex env set SITE_URL https://your-app.example.com
 ```
 
@@ -368,8 +370,12 @@ SMTP_PORT=465                                # 465 = implicit TLS; 587 = STARTTL
 SMTP_USER=you@gmail.com                      # SMTP username
 SMTP_PASSWORD=...                            # app password (Gmail) / SMTP secret (SES)
 SMTP_FROM=Skarm <you@gmail.com>              # a sender the provider allows
-APP_URL=https://your-app-domain.com          # links inside the email
 ```
+
+Links inside the email come from `SITE_URL` (see the GitHub integration
+section). It is shared by every backend-generated link, so set it once.
+`APP_URL` was the former name for this and is still read as a fallback,
+but new deployments should set `SITE_URL`.
 
 Provider notes:
 
