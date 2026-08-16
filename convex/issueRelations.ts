@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { getOrgIssue } from "./issues";
@@ -144,7 +144,7 @@ export const create = orgMutation({
   returns: v.id("issueRelations"),
   handler: async (ctx, args) => {
     if (args.issueId === args.relatedIssueId) {
-      throw new Error("An issue cannot be related to itself");
+      throw new ConvexError("An issue cannot be related to itself");
     }
     const issue = await getOrgIssue(ctx, ctx.org._id, args.issueId);
     const related = await getOrgIssue(ctx, ctx.org._id, args.relatedIssueId);
@@ -172,7 +172,7 @@ export const create = orgMutation({
       existingOutgoing.some((r) => r.relatedIssueId === related._id) ||
       existingIncoming.some((r) => r.issueId === related._id);
     if (alreadyLinked) {
-      throw new Error("These issues are already linked");
+      throw new ConvexError("These issues are already linked");
     }
 
     const relationId = await ctx.db.insert("issueRelations", {
@@ -211,7 +211,7 @@ export const remove = orgMutation({
   handler: async (ctx, args) => {
     const relation = await ctx.db.get(args.relationId);
     if (!relation) {
-      throw new Error("Relation not found");
+      throw new ConvexError("Relation not found");
     }
     // Both ends must belong to the caller's org.
     const fromIssue = await getOrgIssue(ctx, ctx.org._id, relation.issueId);
@@ -298,7 +298,7 @@ export const setParent = orgMutation({
     let newParentIdentifier: string | undefined;
     if (args.parentIssueId !== null) {
       if (args.parentIssueId === issue._id) {
-        throw new Error("An issue cannot be its own parent");
+        throw new ConvexError("An issue cannot be its own parent");
       }
       const parent = await getOrgIssue(ctx, ctx.org._id, args.parentIssueId);
 
@@ -306,7 +306,7 @@ export const setParent = orgMutation({
       let ancestorId: Id<"issues"> | undefined = parent.parentIssueId;
       for (let depth = 0; ancestorId && depth < 100; depth++) {
         if (ancestorId === issue._id) {
-          throw new Error(
+          throw new ConvexError(
             "Cannot set a sub-issue of this issue as its parent"
           );
         }

@@ -16,6 +16,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useMutation, useQuery } from "convex/react";
 import { FunctionReturnType } from "convex/server";
+import { ConvexError } from "convex/values";
 import { Loader2, Search, Sparkles, Waypoints } from "lucide-react";
 import { useTheme } from "next-themes";
 import { DragEvent, useEffect, useRef, useState } from "react";
@@ -254,7 +255,13 @@ function GraphInner() {
   };
 
   const onError = (error: unknown) => {
-    toast.error(error instanceof Error ? error.message : "Something went wrong");
+    // Only ConvexError carries a message safe to show: a plain Error is
+    // redacted to "Server Error" in production.
+    toast.error(
+      error instanceof ConvexError
+        ? (error.data as string)
+        : "Something went wrong"
+    );
   };
 
   /** Discard manual positions and re-run the blocking-depth layout. */

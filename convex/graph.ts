@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { Doc, Id } from "./_generated/dataModel";
 import { QueryCtx } from "./_generated/server";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
@@ -22,14 +22,14 @@ async function scopeKeyFor(
   if (args.projectId) {
     const project = await ctx.db.get(args.projectId);
     if (!project || project.orgId !== orgId) {
-      throw new Error("Project not found");
+      throw new ConvexError("Project not found");
     }
     return `project:${args.projectId}`;
   }
   if (args.cycleId) {
     const cycle = await ctx.db.get(args.cycleId);
     if (!cycle || cycle.orgId !== orgId) {
-      throw new Error("Cycle not found");
+      throw new ConvexError("Cycle not found");
     }
     return `cycle:${args.cycleId}`;
   }
@@ -180,7 +180,7 @@ export const savePositions = orgMutation({
   handler: async (ctx, args) => {
     const scopeKey = await scopeKeyFor(ctx, ctx.org._id, args);
     if (!scopeKey) {
-      throw new Error("Pick a project or cycle first");
+      throw new ConvexError("Pick a project or cycle first");
     }
     const existing = await ctx.db
       .query("graphLayouts")
