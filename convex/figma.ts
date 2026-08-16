@@ -12,6 +12,7 @@ import { getOrgIssue } from "./issues";
 import { logActivity } from "./lib/activity";
 import { orgMutation, orgQuery } from "./lib/customFunctions";
 import { insertFigmaLink, parseFigmaUrl } from "./lib/figmaLinks";
+import { siteUrl } from "./lib/siteUrl";
 
 /**
  * Figma designs linked to issues: previews (name, thumbnail, freshness),
@@ -465,7 +466,6 @@ export const fetchPreview = internalAction({
       let devResourceId = info.devResourceId;
       if (info.nodeId && !devResourceId && info.orgSlug) {
         try {
-          const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
           const created = await figmaFetch<{
             links_created?: { id: string }[];
           }>(token, "POST", "/v1/dev_resources", {
@@ -476,7 +476,7 @@ export const fetchPreview = internalAction({
                   info.issueStatus,
                   info.issueTitle
                 ),
-                url: `${siteUrl}/${info.orgSlug}/issue/${info.issueId}`,
+                url: `${siteUrl()}/${info.orgSlug}/issue/${info.issueId}`,
                 file_key: info.fileKey,
                 node_id: info.nodeId,
               },
@@ -565,8 +565,7 @@ export const updateDevResources = internalAction({
     }
     try {
       const token = await ensureToken(ctx, context);
-      const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
-      const url = `${siteUrl}/${context.orgSlug}/issue/${args.issueId}`;
+      const url = `${siteUrl()}/${context.orgSlug}/issue/${args.issueId}`;
       const name = devResourceName(
         context.identifier,
         context.issueStatus,
