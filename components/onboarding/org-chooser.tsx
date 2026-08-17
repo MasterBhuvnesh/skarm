@@ -34,9 +34,11 @@ export function OrgChooser() {
   const [busy, setBusy] = useState<string | null>(null);
   const redirectedRef = useRef(false);
 
-  // Already have an active workspace? Go straight into it.
+  // Already have an active workspace? Go straight into it - unless the create
+  // form is open, which owns its own redirect (see below).
   useEffect(() => {
     if (
+      mode !== "create" &&
       orgLoaded &&
       organization?.slug &&
       !redirectedRef.current
@@ -44,7 +46,7 @@ export function OrgChooser() {
       redirectedRef.current = true;
       router.replace(`/${organization.slug}`);
     }
-  }, [orgLoaded, organization, router]);
+  }, [mode, orgLoaded, organization, router]);
 
   // Force-fresh Clerk's org data on mount and when the tab regains focus, so
   // an org just created/joined (here or in another tab) shows immediately.
@@ -64,16 +66,14 @@ export function OrgChooser() {
     };
   }, [userMemberships, userInvitations]);
 
-  // While loading, or when redirecting into an active org, show a spinner
-  // rather than flashing the picker.
-  if (!isLoaded || !orgLoaded || organization) {
-    return (
-      <div className="flex items-center justify-center py-10">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
+  // Checked before the spinner below, and before the redirect effect above is
+  // allowed to fire. Clerk's <CreateOrganization> makes the new org active
+  // partway through its own flow, then keeps working (applying an edited name,
+  // uploading a logo) before it navigates to afterCreateOrganizationUrl.
+  // Reacting to that active org here would unmount the form mid-flight and
+  // the redirect would never happen, leaving the spinner up forever - which is
+  // why only edited details hung: accepting the defaults leaves no work to
+  // interrupt (#28).
   if (mode === "create") {
     return (
       <div className="flex flex-col items-center gap-4">
@@ -84,6 +84,16 @@ export function OrgChooser() {
         <Button variant="ghost" size="sm" onClick={() => setMode("choose")}>
           Back
         </Button>
+      </div>
+    );
+  }
+
+  // While loading, or when redirecting into an active org, show a spinner
+  // rather than flashing the picker.
+  if (!isLoaded || !orgLoaded || organization) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
