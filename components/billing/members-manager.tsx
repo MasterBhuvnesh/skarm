@@ -13,6 +13,7 @@ import { useParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
+import { usePurchasedSeats } from "@/components/billing/seat-manager";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -102,6 +103,7 @@ export function MembersManager() {
       memberships: { infinite: true },
       invitations: { infinite: true },
     });
+  const { purchasedSeats } = usePurchasedSeats();
 
   if (!isLoaded || org === undefined || !organization) {
     return (
@@ -134,7 +136,19 @@ export function MembersManager() {
   const pendingCount =
     invitations?.count ?? organization.pendingInvitationsCount;
   const seatsUsed = memberCount + pendingCount;
-  const atSeatLimit = plan.maxSeats !== null && seatsUsed >= plan.maxSeats;
+  // On a seat-based plan Clerk allows exactly the seats bought, not the
+  // plan's ceiling, and refuses the invitation rather than billing for the
+  // extra member. Gate on the purchased count so the form matches what
+  // Clerk will actually accept (#29).
+  const seatLimit = purchasedSeats ?? plan.maxSeats;
+  const atSeatLimit = seatLimit !== null && seatsUsed >= seatLimit;
+  // Blocked, but the plan still permits more members: seats can be bought
+  // instead of changing plan.
+  const canBuySeats =
+    atSeatLimit &&
+    purchasedSeats !== null &&
+    plan.maxSeats !== null &&
+    purchasedSeats < plan.maxSeats;
 
   return (
     <>
@@ -143,8 +157,8 @@ export function MembersManager() {
         <p className="text-xs text-muted-foreground">
           {memberCount} {memberCount === 1 ? "member" : "members"}
           {pendingCount > 0 && ` · ${pendingCount} pending`}
-          {plan.maxSeats !== null
-            ? ` · ${seatsUsed} of ${plan.maxSeats} seats used on ${plan.name}`
+          {seatLimit !== null
+            ? ` · ${seatsUsed} of ${seatLimit} seats used on ${plan.name}`
             : ` · unlimited seats on ${plan.name}`}
         </p>
       </div>
@@ -152,6 +166,7 @@ export function MembersManager() {
       {isAdmin && (
         <InviteMemberForm
           atSeatLimit={atSeatLimit}
+          canBuySeats={canBuySeats}
           planName={plan.name}
           isFreePlan={plan.plan === "free"}
           onInvited={() => void invitations?.revalidate?.()}
@@ -175,11 +190,13 @@ export function MembersManager() {
 
 function InviteMemberForm({
   atSeatLimit,
+  canBuySeats,
   planName,
   isFreePlan,
   onInvited,
 }: {
   atSeatLimit: boolean;
+  canBuySeats: boolean;
   planName: string;
   isFreePlan: boolean;
   onInvited: () => void;
@@ -213,13 +230,17 @@ function InviteMemberForm({
     return (
       <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
         <p className="text-xs text-amber-600 dark:text-amber-400">
-          All {planName} plan seats are in use.{" "}
-          {isFreePlan
-            ? "Upgrade to Pro for up to 10 seats, or Enterprise for unlimited members."
-            : "Upgrade to Enterprise for unlimited members."}
+          {canBuySeats
+            ? `Every seat you have bought on ${planName} is in use. Add a seat to invite another member.`
+            : `All ${planName} plan seats are in use. ` +
+              (isFreePlan
+                ? "Upgrade to Pro for up to 10 seats, or Enterprise for unlimited members."
+                : "Upgrade to Enterprise for unlimited members.")}
         </p>
         <Button size="sm" asChild>
-          <Link href={`/${params.orgSlug}/settings/billing`}>Upgrade</Link>
+          <Link href={`/${params.orgSlug}/settings/billing`}>
+            {canBuySeats ? "Add seats" : "Upgrade"}
+          </Link>
         </Button>
       </div>
     );

@@ -51,6 +51,15 @@ export type PlanDefinition = {
   priceNote?: string;
   /** Seat cap, or null for unlimited. */
   maxSeats: number | null;
+  /**
+   * Members covered by the base fee on a seat-based plan. Beyond this each
+   * member costs `perSeatPrice` and the seat must be BOUGHT before anyone
+   * can be invited into it - Clerk refuses the invitation otherwise, it
+   * does not bill automatically. Undefined on flat-rate plans.
+   */
+  includedSeats?: number;
+  /** USD per month for each member beyond `includedSeats`. */
+  perSeatPrice?: number;
   /** Marketing bullet list for the plan card. */
   highlights: string[];
   /** Lead-in line above the highlights, e.g. "Everything in Free, plus:". */
@@ -86,11 +95,13 @@ export const PRO_PLAN: PlanDefinition = {
   tagline: "For growing teams that want AI superpowers and no limits.",
   monthlyPrice: 20,
   annualMonthlyPrice: 16,
-  priceNote: "Flat rate · up to 10 members",
+  priceNote: "3 members included, then $5 each · up to 10",
   maxSeats: 10,
+  includedSeats: 3,
+  perSeatPrice: 5,
   highlightsLeadIn: "Everything in Free, plus:",
   highlights: [
-    "Up to 10 members included",
+    "3 members included, add up to 10 at $5 each",
     "Unlimited projects and issues",
     "AI agent with workspace context",
     "50 AI messages per user per day",
@@ -165,7 +176,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
         label: "Members",
         values: [
           `Up to ${FREE_PLAN_DISPLAY_LIMITS.seats}`,
-          "Up to 10",
+          "3 included, up to 10",
           "Unlimited",
         ],
       },

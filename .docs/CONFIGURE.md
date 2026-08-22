@@ -70,34 +70,44 @@ the moment it is created.
 | Plan       | Limit organization members | Per-seat fee | Included seats |
 | ---------- | -------------------------- | ------------ | -------------- |
 | Free       | Custom limit, 3            | off          | n/a            |
-| Pro        | Custom limit, 10           | off          | n/a            |
+| Pro        | Custom limit, 10           | $5.00/month  | 3              |
 | Enterprise | Unlimited members          | off          | n/a            |
 
-**Every plan must stay flat rate.** This is not a pricing preference, it is
-what makes the caps above work at all. Attach a per-seat fee to a plan and
-Clerk stops treating the plan limit as a grant: each organization's cap
-becomes the number of seats it has actually purchased, and the Backend API
-refuses to change it.
+**On a seat-based plan the limit is seats bought, not the plan ceiling.**
+Attach a per-seat fee and the plan's member limit stops acting as a grant.
+Each organization may have exactly as many members as it has paid seats, and
+the Backend API refuses to change that number.
 
-That was measured, not assumed. While Pro carried a per-seat price its
-organizations sat at caps of 1, 2 and 3 while the pricing page advertised
-10, and an admin inviting past that got:
+This matters because Clerk does not bill for an extra member automatically.
+It refuses the invitation:
 
 ```
 You have reached your limit of 3 organization memberships,
 including outstanding invitations.
 ```
 
-Clerk blocks rather than billing for the extra seat, and the app has no way
-to buy one. Per-seat pricing is therefore only viable alongside a seat
-purchase flow, which does not exist yet.
+Measured on live Pro organizations, caps sat at 1, 2 and 3 while the pricing
+page advertised 10. The seat has to be bought before anyone can be invited
+into it.
+
+That purchase is what [`components/billing/seat-manager.tsx`](../components/billing/seat-manager.tsx)
+provides. It reads the paid seat count from `useSubscription({ for:
+"organization" })` and hands the purchase to Clerk's own checkout drawer via
+`<CheckoutButton seatsQuantity>`, which prices the change and prorates it for
+the remainder of the billing period. `seatsQuantity` is the total to end up
+with, not the number being added.
+
+The members page gates invitations on that same paid count rather than on
+`maxSeats`, so the form matches what Clerk will accept, and offers "Add
+seats" instead of "Upgrade" while the plan still has room.
 
 Two things to know:
 
 - These numbers are mirrored for display in [`lib/plans.ts`](../lib/plans.ts)
   and in `FREE_PLAN_LIMITS` in [`convex/lib/limits.ts`](../convex/lib/limits.ts).
   Nothing enforces that they agree with the Dashboard, so change them together.
-- The error a per-seat plan produces when anything tries to set a cap is:
+- Nothing may set `max_allowed_memberships` on a seat-based plan's
+  organizations. Clerk owns that number and rejects the write:
 
   ```
   400 organization_member_limit_managed_by_billing
@@ -105,12 +115,12 @@ Two things to know:
   It cannot be edited directly.
   ```
 
-  If you see it, a plan has a per-seat price it should not have.
-- An organization subscribed while its plan still had a per-seat price
-  keeps the cap that was derived then. Removing the per-seat price does not
-  retroactively raise it. Correct those once with a `PATCH` to
-  `/v1/organizations/{id}` setting `max_allowed_memberships`, which succeeds
-  as soon as the plan is flat.
+  This is why an earlier `convex/clerkSeats.ts` was removed: seats are
+  bought, not assigned. Seeing this error means something is still trying to
+  assign them.
+- An organization keeps whatever seat count it has paid for. Raising it is a
+  purchase, made by an admin through the seat manager on the billing page,
+  not an administrative change.
 
 ### 4. Configure Convex
 
