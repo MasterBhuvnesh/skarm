@@ -83,7 +83,7 @@ A modern issue tracker for teams that plan, track, and ship together. Multi-tena
 
 |                  | Free | Pro ($20/mo)         | Enterprise ($99/mo) |
 | ---------------- | ---- | -------------------- | ------------------- |
-| Members          | 3    | 10                   | Unlimited           |
+| Members          | 3    | 3, then $5 up to 10  | Unlimited           |
 | Projects         | 2    | Unlimited            | Unlimited           |
 | Issues           | 100  | Unlimited            | Unlimited           |
 | AI agent         | No   | 50 msgs/user/day     | Unlimited           |

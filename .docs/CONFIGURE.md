@@ -54,35 +54,39 @@ Never commit `.env.local`.
 4. Set up Billing with three organization plans: `free_org`, `pro`, `enterprise`
 5. Attach features to the paid plans: `ai_agent`, `unlimited_projects`, `unlimited_issues`, `unlimited_seats`, `unlimited_ai`, `priority_support`
 6. Copy your plan IDs into [`lib/plans.ts`](../lib/plans.ts)
-7. Keep every plan flat rate. Do not attach a per-seat price to any plan,
-   or its seat cap stops being settable from code - see below
-8. Run `node scripts/backfill-seat-caps.mjs` once to correct organizations
-   created before this sync existed (dry run by default, `--apply` to write)
+7. Set each plan's member limit and seat pricing - see below
 
 #### How seats are enforced
 
 Seats are the one limit Convex cannot enforce. Invitations go straight from
 the browser to Clerk via `organization.inviteMember()`, so no Convex
-mutation is ever in the path. The only real cap is Clerk's
-`max_allowed_memberships` on each organization.
+mutation is ever in the path.
 
-`convex/clerkSeats.ts` pushes that value whenever a workspace's plan
-changes, and when a workspace is first created:
+The cap therefore lives on the Clerk plan itself. Each plan has a **Limit
+organization members** setting that applies to every organization on that
+plan, so nothing has to sync it and a new workspace is capped correctly from
+the moment it is created.
 
-| Plan       | `max_allowed_memberships` |
-| ---------- | -------------------------- |
-| Free       | 3                          |
-| Pro        | 10                         |
-| Enterprise | 0 (unlimited)              |
+| Plan       | Limit organization members | Per-seat fee | Included seats |
+| ---------- | -------------------------- | ------------ | -------------- |
+| Free       | Custom limit, 3            | off          | n/a            |
+| Pro        | Custom limit, 10           | $5.00/month  | 3              |
+| Enterprise | Unlimited members          | off          | n/a            |
+
+Pro is therefore $20/month for the first 3 members and $5/month for each
+member after that, up to 10. A full Pro workspace is $55/month.
+
+Included seats is 3 deliberately: Free allows 3 members, so an organization
+upgrading a full Free workspace to Pro never arrives below its included
+seats and is never blocked from inviting.
 
 Two things to know:
 
-- Your instance-wide default (Clerk → Organizations → Maximum members)
-  applies to any organization this sync has not touched. It is why Free
-  workspaces could reach it and Enterprise workspaces could not exceed it.
-- **Every plan must be flat rate.** If a plan carries a per-seat price,
-  Clerk derives that plan's cap from the seats actually purchased and
-  rejects any attempt to set it:
+- These numbers are mirrored for display in [`lib/plans.ts`](../lib/plans.ts)
+  and in `FREE_PLAN_LIMITS` in [`convex/lib/limits.ts`](../convex/lib/limits.ts).
+  Nothing enforces that they agree with the Dashboard, so change them together.
+- A plan carrying a per-seat price has its `max_allowed_memberships` derived
+  by Clerk from the seats purchased, and the Backend API refuses to set it:
 
   ```
   400 organization_member_limit_managed_by_billing
@@ -90,9 +94,9 @@ Two things to know:
   It cannot be edited directly.
   ```
 
-  Pro carried such a price until it was removed. If you add per-seat
-  pricing to a plan again, its seat cap stops being yours to set and the
-  sync will log this error on every plan change for that plan.
+  That is expected rather than a fault: with the limit configured on the
+  plan there is no reason to set it per organization. An earlier
+  `convex/clerkSeats.ts` did exactly that and has been removed.
 
 ### 4. Configure Convex
 
@@ -101,15 +105,13 @@ Run `npx convex dev` to create or link a project, then set env vars on the deplo
 ```bash
 npx convex env set CLERK_FRONTEND_API_URL https://your-instance.clerk.accounts.dev
 npx convex env set CLERK_WEBHOOK_SECRET whsec_...
-npx convex env set CLERK_SECRET_KEY sk_test_...
 npx convex env set OPENAI_API_KEY sk-...
 ```
 
-`CLERK_SECRET_KEY` is the Backend API key, distinct from the webhook
-signing secret above. Convex uses it to push each workspace's seat cap into
-Clerk when its plan changes. Without it, plan changes still sync but every
-workspace keeps the instance-wide membership default, so Free workspaces
-exceed 3 members and Enterprise workspaces stay capped.
+No `CLERK_SECRET_KEY` here. Convex never calls the Clerk Backend API: it
+only receives webhooks, which are verified with `CLERK_WEBHOOK_SECRET`
+above. The Next.js app needs `CLERK_SECRET_KEY` in its own environment, and
+that is already covered in step 1.
 
 ### 5. Configure Clerk webhooks
 
@@ -128,9 +130,12 @@ Runs Next.js and Convex in parallel. Open [http://localhost:3000](http://localho
 ### Deployment
 
 1. Deploy the frontend to [Vercel](https://vercel.com) and add all `.env.local` variables
-2. Run `npx convex deploy` and set `CLERK_FRONTEND_API_URL`, `CLERK_WEBHOOK_SECRET`, `CLERK_SECRET_KEY`, and `OPENAI_API_KEY` on the production Convex deployment
+2. Run `npx convex deploy` and set `CLERK_FRONTEND_API_URL`, `CLERK_WEBHOOK_SECRET`, and `OPENAI_API_KEY` on the production Convex deployment
 3. Point the Clerk webhook at the production Convex HTTP URL and switch to production Clerk keys
-4. Test end to end: sign up, create org, create issue, upgrade plan, AI chat
+4. Configure the member limit and seat pricing on each plan in the
+   production Clerk instance. Plan settings do not carry over from
+   development, so a production instance starts with no member limits
+5. Test end to end: sign up, create org, create issue, upgrade plan, AI chat
 
 ### Troubleshooting
 
