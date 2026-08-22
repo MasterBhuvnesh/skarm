@@ -67,6 +67,12 @@ function UsageRow({
 export function UsageCard({ org }: { org: Doc<"organizations"> }) {
   const plan = planForOrg(org.plan);
   const isFree = org.plan === "free";
+  // On a seat-based plan the Seats card above owns members: it reports them
+  // against seats actually bought, which is the number Clerk enforces, rather
+  // than against the plan ceiling. Showing a second, looser members bar here
+  // would contradict it.
+  const seatsShownAbove =
+    plan.perSeatPrice !== undefined && plan.maxSeats !== null;
 
   const members = useQuery(api.organizations.listMembers);
   const teams = useQuery(api.teams.list, isFree ? {} : "skip");
@@ -123,7 +129,9 @@ export function UsageCard({ org }: { org: Doc<"organizations"> }) {
       </div>
 
       <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
-        <UsageRow label="Members" count={memberCount} cap={plan.maxSeats} />
+        {!seatsShownAbove && (
+          <UsageRow label="Members" count={memberCount} cap={plan.maxSeats} />
+        )}
         {isFree && (
           <UsageRow
             label="Issues"
