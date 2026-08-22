@@ -70,23 +70,34 @@ the moment it is created.
 | Plan       | Limit organization members | Per-seat fee | Included seats |
 | ---------- | -------------------------- | ------------ | -------------- |
 | Free       | Custom limit, 3            | off          | n/a            |
-| Pro        | Custom limit, 10           | $5.00/month  | 3              |
+| Pro        | Custom limit, 10           | off          | n/a            |
 | Enterprise | Unlimited members          | off          | n/a            |
 
-Pro is therefore $20/month for the first 3 members and $5/month for each
-member after that, up to 10. A full Pro workspace is $55/month.
+**Every plan must stay flat rate.** This is not a pricing preference, it is
+what makes the caps above work at all. Attach a per-seat fee to a plan and
+Clerk stops treating the plan limit as a grant: each organization's cap
+becomes the number of seats it has actually purchased, and the Backend API
+refuses to change it.
 
-Included seats is 3 deliberately: Free allows 3 members, so an organization
-upgrading a full Free workspace to Pro never arrives below its included
-seats and is never blocked from inviting.
+That was measured, not assumed. While Pro carried a per-seat price its
+organizations sat at caps of 1, 2 and 3 while the pricing page advertised
+10, and an admin inviting past that got:
+
+```
+You have reached your limit of 3 organization memberships,
+including outstanding invitations.
+```
+
+Clerk blocks rather than billing for the extra seat, and the app has no way
+to buy one. Per-seat pricing is therefore only viable alongside a seat
+purchase flow, which does not exist yet.
 
 Two things to know:
 
 - These numbers are mirrored for display in [`lib/plans.ts`](../lib/plans.ts)
   and in `FREE_PLAN_LIMITS` in [`convex/lib/limits.ts`](../convex/lib/limits.ts).
   Nothing enforces that they agree with the Dashboard, so change them together.
-- A plan carrying a per-seat price has its `max_allowed_memberships` derived
-  by Clerk from the seats purchased, and the Backend API refuses to set it:
+- The error a per-seat plan produces when anything tries to set a cap is:
 
   ```
   400 organization_member_limit_managed_by_billing
@@ -94,9 +105,12 @@ Two things to know:
   It cannot be edited directly.
   ```
 
-  That is expected rather than a fault: with the limit configured on the
-  plan there is no reason to set it per organization. An earlier
-  `convex/clerkSeats.ts` did exactly that and has been removed.
+  If you see it, a plan has a per-seat price it should not have.
+- An organization subscribed while its plan still had a per-seat price
+  keeps the cap that was derived then. Removing the per-seat price does not
+  retroactively raise it. Correct those once with a `PATCH` to
+  `/v1/organizations/{id}` setting `max_allowed_memberships`, which succeeds
+  as soon as the plan is flat.
 
 ### 4. Configure Convex
 

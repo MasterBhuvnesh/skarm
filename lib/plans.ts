@@ -86,11 +86,11 @@ export const PRO_PLAN: PlanDefinition = {
   tagline: "For growing teams that want AI superpowers and no limits.",
   monthlyPrice: 20,
   annualMonthlyPrice: 16,
-  priceNote: "3 members included, then $5 each · up to 10",
+  priceNote: "Flat rate · up to 10 members",
   maxSeats: 10,
   highlightsLeadIn: "Everything in Free, plus:",
   highlights: [
-    "3 members included, then $5 per member up to 10",
+    "Up to 10 members included",
     "Unlimited projects and issues",
     "AI agent with workspace context",
     "50 AI messages per user per day",
@@ -165,7 +165,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
         label: "Members",
         values: [
           `Up to ${FREE_PLAN_DISPLAY_LIMITS.seats}`,
-          "3 included, up to 10",
+          "Up to 10",
           "Unlimited",
         ],
       },
