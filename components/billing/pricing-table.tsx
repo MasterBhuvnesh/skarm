@@ -3,7 +3,6 @@
 import { useAuth, useOrganization } from "@clerk/nextjs";
 import {
   CheckoutButton,
-  PlanDetailsButton,
   SubscriptionDetailsButton,
 } from "@clerk/nextjs/experimental";
 import { Check } from "lucide-react";
@@ -21,11 +20,13 @@ import {
 } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 import { BillingPeriodToggle } from "./billing-period-toggle";
+import { PlanDetailsDialog } from "./plan-details-dialog";
 
 /**
  * Hand-built pricing table (no <PricingTable />): three plan cards driven by
- * lib/plans.ts, with Clerk CheckoutButton / PlanDetailsButton /
- * SubscriptionDetailsButton behind custom shadcn buttons.
+ * lib/plans.ts, with Clerk CheckoutButton / SubscriptionDetailsButton behind
+ * custom shadcn buttons. Plan details come from our own dialog rather than
+ * Clerk's drawer, which renders raw feature slugs (#40).
  */
 export function PricingTable() {
   const [period, setPeriod] = useState<BillingPeriod>("month");
@@ -67,11 +68,11 @@ function PlanCard({
 
       <div className="flex items-baseline justify-between gap-2">
         <h3 className="text-sm font-semibold">{plan.name}</h3>
-        <PlanDetailsButton planId={plan.clerkPlanId} initialPlanPeriod={period}>
+        <PlanDetailsDialog plan={plan} period={period}>
           <button className="text-xs text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline">
             Plan details
           </button>
-        </PlanDetailsButton>
+        </PlanDetailsDialog>
       </div>
       <p className="mt-1 min-h-8 text-xs text-muted-foreground">
         {plan.tagline}

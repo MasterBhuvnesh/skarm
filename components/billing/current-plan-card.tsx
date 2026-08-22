@@ -1,10 +1,7 @@
 "use client";
 
 import { useOrganization } from "@clerk/nextjs";
-import {
-  PlanDetailsButton,
-  SubscriptionDetailsButton,
-} from "@clerk/nextjs/experimental";
+import { SubscriptionDetailsButton } from "@clerk/nextjs/experimental";
 import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -12,6 +9,7 @@ import { Doc } from "@/convex/_generated/dataModel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice, planForOrg } from "@/lib/plans";
+import { PlanDetailsDialog } from "./plan-details-dialog";
 
 function statusBadgeVariant(
   status: string
@@ -100,11 +98,11 @@ export function CurrentPlanCard({ org }: { org: Doc<"organizations"> }) {
               </Link>
             </Button>
           )}
-          <PlanDetailsButton planId={plan.clerkPlanId}>
+          <PlanDetailsDialog plan={plan}>
             <Button variant="ghost" size="sm">
               Plan details
             </Button>
-          </PlanDetailsButton>
+          </PlanDetailsDialog>
         </div>
       </div>
     </section>
