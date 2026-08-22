@@ -1,6 +1,6 @@
 "use client";
 
-import { useOrganizationList } from "@clerk/nextjs";
+import { useOrganization, useOrganizationList } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -38,24 +38,39 @@ export function WorkspaceShell({
     userMemberships: { infinite: true },
   });
 
+  const { organization } = useOrganization();
+
   const targetMembership = userMemberships.data?.find(
     (m) => m.organization.slug === orgSlug
   );
-  const needsSwitch = isLoaded && targetMembership !== undefined;
+  // Depend on the id, not the membership object: `.find()` returns a fresh
+  // object every render and Clerk hands back a new `data` array on every
+  // revalidation, so the object identity is not a safe dependency.
+  const targetOrgId = targetMembership?.organization.id;
+  const needsSwitch = targetOrgId !== undefined && organization?.id !== targetOrgId;
 
   useEffect(() => {
     if (!isLoaded) {
       return;
     }
-    if (targetMembership) {
-      void setActive({ organization: targetMembership.organization.id });
+    if (targetOrgId) {
+      // Only when it actually differs. setActive mints a new session token,
+      // which revalidates userMemberships and re-runs this effect; calling it
+      // for the org that is already active made that a loop, and because each
+      // new token makes Convex re-authenticate, every useQuery below was reset
+      // to undefined before it could resolve - the workspace never finished
+      // loading (#28).
+      if (organization?.id !== targetOrgId) {
+        void setActive({ organization: targetOrgId });
+      }
     } else if (!userMemberships.isLoading && !userMemberships.hasNextPage) {
       // The user doesn't belong to an org with this slug.
       router.replace("/onboarding");
     }
   }, [
     isLoaded,
-    targetMembership,
+    organization?.id,
+    targetOrgId,
     userMemberships.isLoading,
     userMemberships.hasNextPage,
     setActive,
