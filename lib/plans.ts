@@ -92,7 +92,8 @@ export const PRO_PLAN: PlanDefinition = {
   slug: "pro",
   clerkPlanId: "cplan_3FXMPCVWYxFv5GLBi1C93gqRGfb",
   name: "Pro",
-  tagline: "For growing teams that want AI superpowers and no limits.",
+  tagline:
+    "For growing teams that want AI in their workflow and no cap on projects or issues.",
   monthlyPrice: 20,
   annualMonthlyPrice: 16,
   priceNote: "3 members included, then $5 each · up to 10",
