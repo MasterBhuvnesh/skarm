@@ -1,5 +1,4 @@
 import { v } from "convex/values";
-import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 import { internalMutation, MutationCtx } from "./_generated/server";
 
@@ -158,12 +157,6 @@ async function upsertOrganization(ctx: MutationCtx, data: ClerkOrgData) {
       imageUrl: data.image_url ?? undefined,
       plan: "free",
     });
-    // A new organization inherits the instance-wide membership default,
-    // which is higher than the Free cap. Narrow it immediately.
-    await ctx.scheduler.runAfter(0, internal.clerkSeats.syncSeatCap, {
-      clerkOrgId: data.id,
-      plan: "free",
-    });
   }
 }
 
@@ -265,9 +258,10 @@ async function getOrgByClerkId(ctx: MutationCtx, clerkOrgId: string) {
 }
 
 /**
- * The single place an organization's plan changes. Seats are enforced by
- * Clerk, not by Convex, so a plan change that does not reach Clerk leaves
- * the workspace on its old cap. Route every plan write through here.
+ * The single place an organization's plan changes. Seat capacity is not
+ * written from here: each Clerk plan carries its own member limit, so Clerk
+ * applies the right cap the moment the subscription changes. This only
+ * mirrors the plan into Convex for feature gating (see convex/lib/limits.ts).
  */
 async function setOrgPlan(
   ctx: MutationCtx,
@@ -278,10 +272,6 @@ async function setOrgPlan(
   await ctx.db.patch(org._id, {
     plan,
     ...(subscriptionStatus === undefined ? {} : { subscriptionStatus }),
-  });
-  await ctx.scheduler.runAfter(0, internal.clerkSeats.syncSeatCap, {
-    clerkOrgId: org.clerkOrgId,
-    plan,
   });
 }
 

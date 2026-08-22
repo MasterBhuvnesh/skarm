@@ -61,12 +61,14 @@ export async function assertCanCreateProject(
  * Seats are NOT enforced here, and a guard in this file could not enforce
  * them. Invitations go straight from the browser to Clerk via
  * `organization.inviteMember()`, so no Convex mutation is in the path.
- * The real cap is Clerk's `max_allowed_memberships`, pushed per plan by
- * `convex/clerkSeats.ts`. `FREE_PLAN_LIMITS.seats` above remains the
- * single source of the number itself.
  *
- * A previous `assertUnderSeatLimit` lived here and was never called by
- * anything - it read as enforcement while enforcing nothing.
+ * The cap lives on the Clerk plan itself ("Limit organization members"),
+ * which is what makes it correct for every organization on that plan
+ * without anything syncing it. `FREE_PLAN_LIMITS.seats` above is the
+ * display mirror of the Free plan's limit, not the enforcement.
+ *
+ * Keep the two in step: changing a plan's member limit in the Clerk
+ * Dashboard means changing `lib/plans.ts` and this file to match.
  */
 
 export function hasAiAccess(org: Doc<"organizations">): boolean {

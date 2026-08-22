@@ -20,7 +20,6 @@ import type * as agent_tools from "../agent/tools.js";
 import type * as agent_triage from "../agent/triage.js";
 import type * as agent_vectorAgent from "../agent/vectorAgent.js";
 import type * as attachments from "../attachments.js";
-import type * as clerkSeats from "../clerkSeats.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as cycles from "../cycles.js";
@@ -74,7 +73,6 @@ declare const fullApi: ApiFromModules<{
   "agent/triage": typeof agent_triage;
   "agent/vectorAgent": typeof agent_vectorAgent;
   attachments: typeof attachments;
-  clerkSeats: typeof clerkSeats;
   comments: typeof comments;
   crons: typeof crons;
   cycles: typeof cycles;
