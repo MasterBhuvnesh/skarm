@@ -1,8 +1,9 @@
 "use client"
 
+import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useEffect, useState } from "react"
-import { AnimatedThemeToggler } from "@/components/ui/animated-theme-toggler"
+import { Button } from "@/components/ui/button"
 
 export function MarketingThemeToggler() {
   const { resolvedTheme, setTheme } = useTheme()
@@ -10,7 +11,6 @@ export function MarketingThemeToggler() {
 
   useEffect(() => setMounted(true), [])
 
-  // Avoid hydration mismatch; render placeholder until mounted but keep layout stable
   if (!mounted) {
     return (
       <span
@@ -20,16 +20,17 @@ export function MarketingThemeToggler() {
     )
   }
 
-  const current = resolvedTheme === "dark" ? "dark" : "light"
+  const isDark = resolvedTheme === "dark"
 
   return (
-    <AnimatedThemeToggler
-      theme={current}
-      onThemeChange={setTheme}
-      variant="circle"
-      duration={400}
-      className="inline-flex size-8 items-center justify-center rounded-lg border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+    <Button
+      variant="ghost"
+      size="icon"
+      className="size-8 rounded-lg border border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
       aria-label="Toggle theme"
-    />
+    >
+      {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+    </Button>
   )
 }
