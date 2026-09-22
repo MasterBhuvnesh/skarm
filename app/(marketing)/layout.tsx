@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Show } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { MarketingThemeToggler } from "@/components/marketing/marketing-theme-toggler";
 import { SkarmLogo } from "@/components/shared/skarm-logo";
 
 /**
@@ -56,6 +57,7 @@ export default function MarketingLayout({
                 <Link href="/onboarding">Open app</Link>
               </Button>
             </Show>
+            <MarketingThemeToggler />
           </div>
         </div>
       </header>
