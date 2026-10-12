@@ -24,9 +24,9 @@ export function AuthPanel() {
         The AI-native issue tracker
       </p>
 
-      <h1 className="mt-5 text-4xl font-medium tracking-tighter text-balance lg:text-[2.75rem]">
+      <h2 className="mt-5 text-4xl font-medium tracking-tighter text-balance lg:text-[2.75rem]">
         Ship at the speed of thought
-      </h1>
+      </h2>
 
       <p className="mt-5 max-w-md text-base text-balance text-muted-foreground">
         Plan, track, and ship in a keyboard-first workspace, powered by an AI

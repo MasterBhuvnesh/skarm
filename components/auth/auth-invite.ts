@@ -1,10 +1,8 @@
 /**
  * Organization invitation detection for the auth pages.
  *
- * Clerk appends its own params to the link inside the invitation email:
- * `__clerk_ticket` (the opaque ticket) and `__clerk_status` (whether the
- * invited address already has an account, so Clerk knows whether to run the
- * sign-in or the sign-up flow). Older links use `__clerk_invitation_token`.
+ * Clerk appends `__clerk_ticket` (the opaque ticket) to the link inside the
+ * invitation email. Older links use `__clerk_invitation_token`.
  *
  * We only read these to decide whether to show invite context copy. The
  * prebuilt <SignIn /> / <SignUp /> components consume the ticket themselves,
@@ -16,11 +14,16 @@
  * here. See issue #33.
  */
 
-/** Params Clerk appends to an invitation link. */
+/**
+ * Params that only ever appear on an organization invitation link.
+ *
+ * Deliberately excludes `__clerk_status`: Clerk uses that one for every ticket
+ * flow, including password reset and the `needs-sync` handshake redirect, so
+ * accepting it would show the invite banner on links that invite nothing.
+ */
 export const INVITE_PARAMS = [
   "__clerk_ticket",
   "__clerk_invitation_token",
-  "__clerk_status",
 ] as const;
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -30,11 +33,7 @@ function firstValue(value: string | string[] | undefined): string | undefined {
   return value;
 }
 
-/**
- * True when the URL carries an organization invitation. A ticket is the
- * strong signal; `__clerk_status` alone is accepted too, since Clerk sends
- * it alongside the ticket and older links may only carry it.
- */
+/** True when the URL carries an organization invitation ticket. */
 export function hasInvitation(searchParams: SearchParams): boolean {
   return INVITE_PARAMS.some((param) => {
     const value = firstValue(searchParams[param]);

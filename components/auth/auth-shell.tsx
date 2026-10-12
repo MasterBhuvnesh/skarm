@@ -50,11 +50,12 @@ export function AuthShell({
           <div className="flex w-full flex-col items-center justify-center">
             {/* Headline shown only on mobile, where the panel is hidden. The
                 other headline is display:none at the same breakpoint, so
-                exactly one h1 is ever exposed to the accessibility tree. */}
+                exactly one is ever exposed to the accessibility tree. Both are
+                h2: Clerk's form title is already the page h1. */}
             <div className="mb-8 text-center lg:hidden">
-              <h1 className="text-2xl font-medium tracking-tighter text-balance">
+              <h2 className="text-2xl font-medium tracking-tighter text-balance">
                 Ship at the speed of thought
-              </h1>
+              </h2>
               <p className="mt-2 text-sm text-balance text-muted-foreground">
                 The AI-native issue tracker for modern teams.
               </p>

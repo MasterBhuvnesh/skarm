@@ -61,10 +61,7 @@ export const authAppearance = {
       fontSize: "0.8125rem !important",
       fontWeight: "500 !important",
     },
-    formFieldInput: {
-      ...CONTROL,
-      boxShadow: "none !important",
-    },
+    formFieldInput: CONTROL,
     formButtonPrimary: {
       ...CONTROL,
       fontWeight: "500 !important",
